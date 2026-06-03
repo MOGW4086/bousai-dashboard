@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード - 防災情報{% endblock %}
+{% block content %}
+<h2>ダッシュボード</h2>
+
+<!-- 登録地域サマリー -->
+{% if viewer_areas %}
+<section class="section">
+  <h3>登録地域の状況</h3>
+  <div class="card-grid">
+    {% for area in viewer_areas %}
+    <div class="card">
+      <div class="card-title">{{ area.name }}</div>
+      <div class="card-body">
+        {% set area_warnings = warnings | selectattr('area_code', 'equalto', area.area_code) | list %}
+        {% if area_warnings %}
+          {% for w in area_warnings %}
+            <span class="badge badge-{{ w.level }}">{{ w.warning_type }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="badge badge-ok">発令なし</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="section">
+  <div class="alert alert-info">
+    地域が登録されていません。<a href="/areas">地域設定</a>から登録してください。
+  </div>
+</section>
+{% endif %}
+
+<!-- 最新地震情報 -->
+<section class="section">
+  <h3>最新地震情報（震度3以上・直近10件）</h3>
+  {% if quakes %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>発生日時</th>
+        <th>震源地</th>
+        <th>最大震度</th>
+        <th>マグニチュード</th>
+        <th>津波</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for q in quakes %}
+      <tr class="scale-{{ q.max_scale // 10 if q.max_scale else 0 }}">
+        <td>{{ q.occurred_at or '-' }}</td>
+        <td>{{ q.hypocenter or '-' }}</td>
+        <td>
+          {% if q.max_scale %}
+            <span class="scale-badge scale-{{ q.max_scale }}">
+              震度{{ q.max_scale // 10 }}{% if q.max_scale % 10 == 5 %}強{% elif q.max_scale % 10 == 6 %}弱{% endif %}
+            </span>
+          {% else %}-{% endif %}
+        </td>
+        <td>{{ 'M%.1f' % q.magnitude if q.magnitude else '-' }}</td>
+        <td>{{ q.tsunami or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">現在、震度3以上の地震情報はありません。</p>
+  {% endif %}
+</section>
+
+<!-- 現在発令中の警報 -->
+<section class="section">
+  <h3>現在発令中の警報・注意報</h3>
+  {% if warnings %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>地域</th>
+        <th>種別</th>
+        <th>レベル</th>
+        <th>発表日時</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in warnings %}
+      <tr>
+        <td>{{ w.area_name or w.area_code }}</td>
+        <td>{{ w.warning_type }}</td>
+        <td><span class="badge badge-{{ w.level }}">{{ w.level }}</span></td>
+        <td>{{ w.reported_at or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">現在、警報・注意報の発令はありません。</p>
+  {% endif %}
+</section>
+{% endblock %}

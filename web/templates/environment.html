@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}環境情報（黄砂・紫外線）- 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>環境情報（黄砂・紫外線）</h2>
+{% if env_info %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>種別</th>
+      <th>地域</th>
+      <th>レベル</th>
+      <th>概要</th>
+      <th>有効期間</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in env_info %}
+    <tr>
+      <td>
+        {% if e.info_type == 'kosa' %}黄砂
+        {% elif e.info_type == 'uv' %}紫外線
+        {% else %}{{ e.info_type }}{% endif %}
+      </td>
+      <td>{{ e.area_name or '-' }}</td>
+      <td>{{ e.level or '-' }}</td>
+      <td>{{ e.description or '-' }}</td>
+      <td>{{ e.valid_from or '-' }}{% if e.valid_to %} ～ {{ e.valid_to }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、環境情報はありません。</p>
+{% endif %}
+{% endblock %}

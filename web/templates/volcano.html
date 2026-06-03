@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}噴火警報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>噴火警報・火山情報</h2>
+{% if alerts %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>火山名</th>
+      <th>警戒レベル</th>
+      <th>種別</th>
+      <th>概要</th>
+      <th>発表日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in alerts %}
+    <tr>
+      <td>{{ a.volcano_name }}</td>
+      <td>
+        {% if a.alert_level %}
+          <span class="badge badge-warning">レベル{{ a.alert_level }}</span>
+        {% else %}-{% endif %}
+      </td>
+      <td>{{ a.alert_type }}</td>
+      <td>{{ a.description or '-' }}</td>
+      <td>{{ a.reported_at or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、噴火警報は発令されていません。</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}台風情報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>台風情報</h2>
+{% if typhoons %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>台風ID</th>
+      <th>名称</th>
+      <th>状態</th>
+      <th>取得日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in typhoons %}
+    <tr>
+      <td>{{ t.typhoon_id }}</td>
+      <td>{{ t.name or '-' }}</td>
+      <td>{{ t.status or '-' }}</td>
+      <td>{{ t.fetched_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、台風情報はありません。</p>
+{% endif %}
+{% endblock %}

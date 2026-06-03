@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}熱中症警戒アラート - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>熱中症警戒アラート</h2>
+{% if alerts %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>地域</th>
+      <th>対象日</th>
+      <th>レベル</th>
+      <th>発表日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in alerts %}
+    <tr>
+      <td>{{ a.area_name }}</td>
+      <td>{{ a.target_date }}</td>
+      <td><span class="badge badge-warning">{{ a.level }}</span></td>
+      <td>{{ a.reported_at or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、熱中症警戒アラートの発令はありません。</p>
+{% endif %}
+{% endblock %}

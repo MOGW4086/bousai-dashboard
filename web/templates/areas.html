@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}地域設定 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>地域設定</h2>
+
+<div class="alert alert-info">
+  このデバイスの設定はCookieで管理されます。ブラウザのCookieを削除すると設定がリセットされます。
+</div>
+
+<!-- 登録地域一覧 -->
+<section class="section">
+  <h3>登録済み地域（このデバイスの設定）</h3>
+  {% if viewer_areas %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>地域名</th>
+        <th>都道府県コード</th>
+        <th>優先度</th>
+        <th>登録日時</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for area in viewer_areas %}
+      <tr>
+        <td>{{ area.name }}</td>
+        <td>{{ area.pref_code }}</td>
+        <td>{{ area.priority }}</td>
+        <td>{{ area.created_at }}</td>
+        <td>
+          <button class="btn btn-danger btn-sm"
+                  onclick="deleteArea('{{ area.area_code }}')">削除</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">登録されている地域はありません。</p>
+  {% endif %}
+</section>
+
+<!-- 地域追加フォーム -->
+<section class="section">
+  <h3>地域を追加</h3>
+  <form method="POST" action="/areas" class="form-inline">
+    <label for="pref_code">都道府県:</label>
+    <select id="pref_code" name="pref_code" required>
+      <option value="">選択してください</option>
+      {% for code, name in pref_master.items() %}
+      <option value="{{ code }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">追加</button>
+  </form>
+</section>
+
+<script>
+function deleteArea(areaCode) {
+  if (!confirm('この地域を削除しますか？')) return;
+  fetch('/areas?area_code=' + encodeURIComponent(areaCode), { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => { if (data.ok) location.reload(); })
+    .catch(err => alert('削除に失敗しました: ' + err));
+}
+</script>
+{% endblock %}

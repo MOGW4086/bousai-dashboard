@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}地震情報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>地震情報</h2>
+{% if quakes %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>発生日時</th>
+      <th>震源地</th>
+      <th>最大震度</th>
+      <th>マグニチュード</th>
+      <th>津波</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for q in quakes %}
+    <tr>
+      <td>{{ q.occurred_at or '-' }}</td>
+      <td>{{ q.hypocenter or '-' }}</td>
+      <td>
+        {% if q.max_scale %}
+          <span class="scale-badge scale-{{ q.max_scale }}">震度{{ q.max_scale // 10 }}</span>
+        {% else %}-{% endif %}
+      </td>
+      <td>{{ 'M%.1f' % q.magnitude if q.magnitude else '-' }}</td>
+      <td>{{ q.tsunami or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、地震情報はありません。</p>
+{% endif %}
+{% endblock %}

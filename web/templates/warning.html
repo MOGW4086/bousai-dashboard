@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}警報・注意報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>警報・注意報</h2>
+{% if warnings %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>地域</th>
+      <th>種別</th>
+      <th>レベル</th>
+      <th>発表日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for w in warnings %}
+    <tr>
+      <td>{{ w.area_name or w.area_code }}</td>
+      <td>{{ w.warning_type }}</td>
+      <td><span class="badge badge-{{ w.level }}">{{ w.level }}</span></td>
+      <td>{{ w.reported_at or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、警報・注意報の発令はありません。</p>
+{% endif %}
+{% endblock %}

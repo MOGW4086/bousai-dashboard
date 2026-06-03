@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}河川洪水予報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>河川洪水予報</h2>
+{% if forecasts %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>河川名</th>
+      <th>地域</th>
+      <th>レベル</th>
+      <th>発表日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for f in forecasts %}
+    <tr>
+      <td>{{ f.river_name }}</td>
+      <td>{{ f.area_name or '-' }}</td>
+      <td><span class="badge badge-warning">{{ f.level }}</span></td>
+      <td>{{ f.reported_at or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、洪水予報は発令されていません。</p>
+{% endif %}
+{% endblock %}

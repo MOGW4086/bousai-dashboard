@@ -1,0 +1,294 @@
+/* 防災ダッシュボード スタイルシート */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif;
+  font-size: 14px;
+  color: #333;
+  background: #f5f5f5;
+  line-height: 1.6;
+}
+
+/* ─── ヘッダー ─────────────────────────────────────────────── */
+header {
+  background: #1a2a4a;
+  color: #fff;
+  padding: 0.75rem 1rem;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.site-title {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.last-updated {
+  color: #aac;
+}
+
+/* ─── ナビゲーション ────────────────────────────────────────── */
+nav {
+  background: #253a6a;
+  padding: 0 1rem;
+  overflow-x: auto;
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.nav-list a {
+  display: block;
+  padding: 0.65rem 0.9rem;
+  color: #ccd;
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.nav-list a:hover,
+.nav-list a.active {
+  background: #1a2a4a;
+  color: #fff;
+}
+
+/* ─── メインコンテンツ ─────────────────────────────────────── */
+main {
+  max-width: 1200px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+h2 {
+  font-size: 1.4rem;
+  color: #1a2a4a;
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #1a2a4a;
+}
+
+h3 {
+  font-size: 1.1rem;
+  color: #253a6a;
+  margin-bottom: 0.75rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+/* ─── アラート ─────────────────────────────────────────────── */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.alert-info {
+  background: #e8f0fe;
+  border-left: 4px solid #4285f4;
+  color: #1a237e;
+}
+
+/* ─── テーブル ─────────────────────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.table th {
+  background: #f0f2f5;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: #f9f9ff;
+}
+
+/* ─── バッジ ───────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-special_warning {
+  background: #9c27b0;
+  color: #fff;
+}
+
+.badge-warning {
+  background: #f44336;
+  color: #fff;
+}
+
+.badge-advisory {
+  background: #ff9800;
+  color: #fff;
+}
+
+.badge-ok {
+  background: #4caf50;
+  color: #fff;
+}
+
+/* ─── 震度バッジ ───────────────────────────────────────────── */
+.scale-badge {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.scale-10, .scale-20 { background: #bbb; color: #333; }
+.scale-30 { background: #3498db; color: #fff; }
+.scale-40 { background: #f39c12; color: #fff; }
+.scale-45 { background: #e67e22; color: #fff; }
+.scale-50 { background: #e74c3c; color: #fff; }
+.scale-55 { background: #c0392b; color: #fff; }
+.scale-60 { background: #8e44ad; color: #fff; }
+.scale-70 { background: #2c3e50; color: #fff; }
+
+/* ─── カードグリッド ───────────────────────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-title {
+  font-weight: bold;
+  color: #253a6a;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.card-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* ─── フォーム ─────────────────────────────────────────────── */
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.form-inline label {
+  font-weight: 600;
+  color: #444;
+}
+
+select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* ─── ボタン ───────────────────────────────────────────────── */
+.btn {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.btn:hover { opacity: 0.85; }
+
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+.btn-primary { background: #1a73e8; color: #fff; }
+.btn-danger  { background: #ea4335; color: #fff; }
+
+#refresh-btn {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* ─── no-data ──────────────────────────────────────────────── */
+.no-data {
+  color: #888;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+/* ─── フッター ─────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 1rem;
+  margin-top: 2rem;
+  color: #888;
+  font-size: 0.8rem;
+  border-top: 1px solid #ddd;
+}
+
+footer a { color: #4285f4; }
+
+/* ─── レスポンシブ ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .header-inner { flex-direction: column; align-items: flex-start; }
+  .table th, .table td { padding: 0.4rem 0.5rem; font-size: 0.8rem; }
+  .card-grid { grid-template-columns: 1fr 1fr; }
+}

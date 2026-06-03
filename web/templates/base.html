@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}防災ダッシュボード{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1><a href="/" class="site-title">🛡️ 防災ダッシュボード</a></h1>
+      <div class="header-meta">
+        {% if last_updated %}
+          <span class="last-updated">最終更新: {{ last_updated }}</span>
+        {% else %}
+          <span class="last-updated">最終更新: -</span>
+        {% endif %}
+        <button id="refresh-btn" class="btn btn-sm">手動更新</button>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <ul class="nav-list">
+      <li><a href="/" {% if request.path == '/' %}class="active"{% endif %}>ダッシュボード</a></li>
+      <li><a href="/quake" {% if request.path == '/quake' %}class="active"{% endif %}>地震</a></li>
+      <li><a href="/warning" {% if request.path == '/warning' %}class="active"{% endif %}>警報</a></li>
+      <li><a href="/typhoon" {% if request.path == '/typhoon' %}class="active"{% endif %}>台風</a></li>
+      <li><a href="/heatstroke" {% if request.path == '/heatstroke' %}class="active"{% endif %}>熱中症</a></li>
+      <li><a href="/volcano" {% if request.path == '/volcano' %}class="active"{% endif %}>火山</a></li>
+      <li><a href="/river" {% if request.path == '/river' %}class="active"{% endif %}>河川</a></li>
+      <li><a href="/environment" {% if request.path == '/environment' %}class="active"{% endif %}>環境</a></li>
+      <li><a href="/areas" {% if request.path == '/areas' %}class="active"{% endif %}>地域設定</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <div id="refresh-msg" class="alert alert-info" style="display:none;">データを収集中です...</div>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>データ提供: <a href="https://www.jma.go.jp/" target="_blank">気象庁</a> / <a href="https://www.p2pquake.net/" target="_blank">P2P地震情報</a></p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
