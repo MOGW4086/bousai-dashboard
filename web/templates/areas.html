@@ -44,7 +44,7 @@
 <!-- 地域追加フォーム -->
 <section class="section">
   <h3>地域を追加</h3>
-  <form method="POST" action="/areas" class="form-inline">
+  <form method="POST" action="{{ url_for('areas') }}" class="form-inline">
     <label for="pref_code">都道府県:</label>
     <select id="pref_code" name="pref_code" required>
       <option value="">選択してください</option>
@@ -59,7 +59,7 @@
 <script>
 function deleteArea(areaCode) {
   if (!confirm('この地域を削除しますか？')) return;
-  fetch('/areas?area_code=' + encodeURIComponent(areaCode), { method: 'DELETE' })
+  fetch((typeof BASE_URL !== 'undefined' ? BASE_URL : '') + '/areas?area_code=' + encodeURIComponent(areaCode), { method: 'DELETE' })
     .then(r => r.json())
     .then(data => { if (data.ok) location.reload(); })
     .catch(err => alert('削除に失敗しました: ' + err));

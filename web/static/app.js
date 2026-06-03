@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
       refreshMsg.style.display = 'block';
     }
 
-    fetch('/api/refresh', { method: 'POST' })
+    fetch((typeof BASE_URL !== 'undefined' ? BASE_URL : '') + '/api/refresh', { method: 'POST' })
       .then(function (resp) {
         return resp.json();
       })

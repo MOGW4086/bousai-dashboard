@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from flask import Flask, g, jsonify, make_response, render_template, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from db.models import (
     delete_viewer_area,
@@ -26,6 +27,7 @@ from scheduler.area_master import PREF_MASTER
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 VIEWER_COOKIE = "viewer_id"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 365日
