@@ -153,6 +153,15 @@ def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
         )
 
 
+def delete_warnings_by_type(warning_type: str, db_path: str | None = None) -> None:
+    """指定警報種別の警報を全削除する（土砂災害警戒情報等の一括リフレッシュ用）。"""
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "DELETE FROM warnings WHERE warning_type = ?",
+            (warning_type,),
+        )
+
+
 def get_active_warnings(db_path: str | None = None) -> list[dict]:
     """現在の警報・注意報一覧を返す。"""
     with get_conn(db_path) as conn:

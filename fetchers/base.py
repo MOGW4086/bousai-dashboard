@@ -7,10 +7,13 @@ from lxml import etree
 logger = logging.getLogger(__name__)
 
 
-def http_get_json(url: str, timeout: int = 10) -> dict | list | None:
+def http_get_json(url: str, timeout: int = 10, headers: dict | None = None) -> dict | list | None:
     """GETリクエストでJSONを取得する。エラー時はNoneを返す。"""
+    merged = {"User-Agent": "bousai-dashboard/1.0"}
+    if headers:
+        merged.update(headers)
     try:
-        resp = requests.get(url, timeout=timeout, headers={"User-Agent": "bousai-dashboard/1.0"})
+        resp = requests.get(url, timeout=timeout, headers=merged)
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.Timeout:
