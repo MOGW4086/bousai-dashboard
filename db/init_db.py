@@ -112,6 +112,12 @@ CREATE TABLE IF NOT EXISTS collection_log (
     message     TEXT,
     ran_at      TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
+
+-- JMA XMLフィード処理済みエントリ管理
+CREATE TABLE IF NOT EXISTS xml_feed_state (
+    entry_id     TEXT PRIMARY KEY,
+    processed_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
 """
 
 

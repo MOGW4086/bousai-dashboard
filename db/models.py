@@ -339,6 +339,22 @@ def get_environment_info(db_path: str | None = None) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+# ─── xml_feed_state ───────────────────────────────────────────────────────────
+
+def is_processed(entry_id: str, db_path=None) -> bool:
+    with get_conn(db_path) as conn:
+        row = conn.execute("SELECT 1 FROM xml_feed_state WHERE entry_id=?", (entry_id,)).fetchone()
+        return row is not None
+
+
+def mark_processed(entry_id: str, db_path=None) -> None:
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO xml_feed_state (entry_id) VALUES (?)",
+            (entry_id,),
+        )
+
+
 # ─── collection_log ───────────────────────────────────────────────────────────
 
 def insert_collection_log(

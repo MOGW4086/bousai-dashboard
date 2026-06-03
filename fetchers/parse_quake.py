@@ -1,0 +1,79 @@
+"""VXSE53 震源・震度情報 パーサー。"""
+import logging
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from lxml import etree
+from db.models import insert_quake
+from fetchers.xml_utils import find_text
+
+logger = logging.getLogger(__name__)
+
+INTENSITY_MAP = {
+    "1": 10,
+    "2": 20,
+    "3": 30,
+    "4": 40,
+    "5弱": 50,
+    "5強": 55,
+    "6弱": 60,
+    "6強": 65,
+    "7": 70,
+}
+
+MIN_SCALE = 55  # 5強以上のみ保存
+
+
+def _parse_scale(text: str | None) -> int | None:
+    if text is None:
+        return None
+    return INTENSITY_MAP.get(text.strip())
+
+
+def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
+    """VXSE53 XMLを解析して地震情報をDBに保存する。保存件数（0 or 1）を返す。"""
+    event_id = find_text(root, "Head/EventID")
+    occurred_at = find_text(root, "Head/ReportDateTime")
+    hypocenter = find_text(root, "Body/Earthquake/Hypocenter/Area/Name")
+    magnitude_str = find_text(root, "Body/Earthquake/Magnitude")
+    max_int_str = find_text(root, "Body/Intensity/Observation/MaxInt")
+    tsunami_text = find_text(root, "Body/Comments/ForecastComment/Text")
+
+    magnitude = None
+    if magnitude_str:
+        try:
+            magnitude = float(magnitude_str)
+        except ValueError:
+            pass
+
+    max_scale = _parse_scale(max_int_str)
+
+    if max_scale is None or max_scale < MIN_SCALE:
+        logger.debug("震度フィルタで除外: max_int=%s max_scale=%s", max_int_str, max_scale)
+        return 0
+
+    if tsunami_text and "津波" in tsunami_text:
+        tsunami = "Major"
+    else:
+        tsunami = "None"
+
+    if not event_id:
+        logger.warning("EventID が取得できませんでした")
+        return 0
+
+    saved = insert_quake(
+        event_id=event_id,
+        occurred_at=occurred_at or reported_at,
+        hypocenter=hypocenter,
+        magnitude=magnitude,
+        max_scale=max_scale,
+        tsunami=tsunami,
+        raw_json=None,
+        db_path=db_path,
+    )
+    if saved:
+        logger.info("地震保存: event_id=%s max_scale=%d", event_id, max_scale)
+        return 1
+    return 0

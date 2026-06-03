@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-SOURCES = ["quake", "warning", "heatstroke", "typhoon", "volcano", "river", "environment", "air"]
+SOURCES = ["atom", "air"]
 
 
 def run_fetcher(source: str, db_path: str) -> tuple[str, int, str | None]:
@@ -60,7 +60,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="防災情報データ収集")
     parser.add_argument(
         "--source",
-        choices=SOURCES,
+        choices=SOURCES + ["quake", "warning", "heatstroke", "typhoon", "volcano", "river", "environment"],
         help="収集するデータソース（省略時は全て）",
     )
     args = parser.parse_args()
