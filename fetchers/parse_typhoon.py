@@ -26,6 +26,8 @@ def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
     # 子要素
     for child in el:
         tag = child.tag
+        if not isinstance(tag, str):  # コメントノード・処理命令をスキップ
+            continue
         child_dict = _element_to_dict(child, _depth + 1)
         if tag in result:
             existing = result[tag]
@@ -81,6 +83,12 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             logger.debug("<Number> が取得できないためスキップ")
             continue
 
+        # 同一電文内の重複 typhoon_id はスキップ（name/status解析・dict変換より先にチェック）
+        if typhoon_id in seen_ids:
+            logger.debug("typhoon_id=%s は同一電文内で重複のためスキップ", typhoon_id)
+            continue
+        seen_ids.add(typhoon_id)
+
         # --- name: "<NameKana>（<Name>）" ---
         name_kana = find_text(name_part, "NameKana")
         name_en = find_text(name_part, "Name")
@@ -105,12 +113,6 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 
         # --- raw_json: Item 要素の内容を dict 化 ---
         raw_json = _element_to_dict(item)
-
-        # 同一電文内の重複 typhoon_id はスキップ
-        if typhoon_id in seen_ids:
-            logger.debug("typhoon_id=%s は同一電文内で重複のためスキップ", typhoon_id)
-            continue
-        seen_ids.add(typhoon_id)
 
         upsert_typhoon(
             typhoon_id=typhoon_id,

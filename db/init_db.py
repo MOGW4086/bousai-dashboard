@@ -130,6 +130,12 @@ def init_db(db_path: str | None = None) -> None:
     try:
         conn.executescript(DDL)
         conn.commit()
+        # 既存 DB への後付けカラム追加（ALTER TABLE は IF NOT EXISTS が使えないため try/except）
+        try:
+            conn.execute("ALTER TABLE typhoons ADD COLUMN reported_at TEXT")
+            conn.commit()
+        except Exception:
+            pass  # カラムが既存の場合は無視
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()
