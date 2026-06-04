@@ -178,23 +178,29 @@ def upsert_typhoon(
     name: str | None,
     status: str | None,
     raw_json: dict | None,
+    reported_at: str | None = None,
     db_path: str | None = None,
 ) -> None:
     """台風情報をupsertする。"""
     with get_conn(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO typhoons (typhoon_id, name, status, raw_json)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO typhoons (typhoon_id, name, status, reported_at, raw_json)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(typhoon_id)
             DO UPDATE SET name=excluded.name, status=excluded.status,
+                          reported_at=COALESCE(excluded.reported_at, typhoons.reported_at),
                           raw_json=excluded.raw_json, fetched_at=datetime('now','localtime')
+            WHERE excluded.reported_at IS NULL
+               OR typhoons.reported_at IS NULL
+               OR excluded.reported_at >= typhoons.reported_at
             """,
             (
                 typhoon_id,
                 name,
                 status,
-                json.dumps(raw_json, ensure_ascii=False) if raw_json else None,
+                reported_at,
+                json.dumps(raw_json, ensure_ascii=False) if raw_json is not None else None,
             ),
         )
 

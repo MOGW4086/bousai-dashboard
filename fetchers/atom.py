@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fetchers.xml_utils import fetch_atom, fetch_xml, doc_type
-from fetchers import parse_quake, parse_warning, parse_sediment, parse_volcano, parse_heatstroke
+from fetchers import parse_quake, parse_warning, parse_sediment, parse_volcano, parse_heatstroke, parse_typhoon
 from db.models import is_processed, mark_processed
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ HANDLERS = {
     "VXWW50": parse_sediment.handle,
     "VFVO53": parse_volcano.handle,
     "VPFT50": parse_heatstroke.handle,
+    "VPTW60": parse_typhoon.handle,
 }
 
 # 同一都道府県の最新1件のみ処理する電文種別（地域フィルタが必要なもの）

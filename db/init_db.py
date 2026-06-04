@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS typhoons (
     typhoon_id  TEXT NOT NULL UNIQUE,
     name        TEXT,
     status      TEXT,
+    reported_at TEXT,
     raw_json    TEXT,
     fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
@@ -129,6 +130,11 @@ def init_db(db_path: str | None = None) -> None:
     try:
         conn.executescript(DDL)
         conn.commit()
+        # PRAGMA table_info でカラム存在確認してから ALTER TABLE（OperationalError の隠蔽を防ぐ）
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(typhoons)").fetchall()]
+        if "reported_at" not in columns:
+            conn.execute("ALTER TABLE typhoons ADD COLUMN reported_at TEXT")
+            conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()
