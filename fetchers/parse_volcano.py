@@ -25,18 +25,18 @@ def _extract_volcano_name(title: str) -> str | None:
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     """VFVO53 XMLを解析して降灰予報をDBに保存する。保存件数を返す。"""
     title = find_text(root, "Head/Title") or ""
+    alert_type = "降灰予報"  # UNIQUE(volcano_name, alert_type) を安定させるため固定値
 
     volcano_name = _extract_volcano_name(title)
     if not volcano_name:
         logger.warning("火山名を取得できませんでした: title=%r", title)
         return 0
 
-    # alert_type は固定値にして UNIQUE(volcano_name, alert_type) の安定性を保つ
     # title 全文は description に格納
     upsert_volcano_alert(
         volcano_name=volcano_name,
         alert_level=None,
-        alert_type="降灰予報",
+        alert_type=alert_type,
         description=title,
         reported_at=reported_at,
         db_path=db_path,
