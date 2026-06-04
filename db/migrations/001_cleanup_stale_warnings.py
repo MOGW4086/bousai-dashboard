@@ -54,7 +54,7 @@ def run(db_path: str | None = None) -> None:
         ).fetchone()
         r3_count = conn.execute(
             "DELETE FROM xml_feed_state WHERE entry_id LIKE '%VPWW53%'"
-        ).rowcount if exists else 0
+        ).rowcount if exists is not None else 0
 
         after = conn.execute("SELECT COUNT(*) FROM warnings").fetchone()[0]
 
