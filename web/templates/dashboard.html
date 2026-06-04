@@ -15,7 +15,7 @@
         {% set area_warnings = warnings | selectattr('area_code', 'equalto', area.area_code) | list %}
         {% if area_warnings %}
           {% for w in area_warnings %}
-            <span class="badge badge-{{ w.level }}">{{ w.warning_type }}</span>
+            {% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.warning_type }}</span>{% else %}<span class="badge">{{ w.warning_type }}</span>{% endif %}
           {% endfor %}
         {% else %}
           <span class="badge badge-ok">発令なし</span>
@@ -88,7 +88,7 @@
       <tr>
         <td>{{ w.area_name or w.area_code }}</td>
         <td>{{ w.warning_type }}</td>
-        <td><span class="badge badge-{{ w.level }}">{{ w.level }}</span></td>
+        <td>{% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}</td>
         <td>{{ w.reported_at or '-' }}</td>
       </tr>
       {% endfor %}
