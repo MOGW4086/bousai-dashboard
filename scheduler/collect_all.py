@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
 from db.init_db import init_db
-from db.models import cleanup_xml_feed_state, insert_collection_log
+from db.models import cleanup_xml_feed_state, delete_past_heatstroke_alerts, insert_collection_log
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +59,12 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
         logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
     except Exception as e:
         logger.warning("xml_feed_state クリーンアップ失敗（スキップ）: %s", e)
+
+    try:
+        deleted_alerts = delete_past_heatstroke_alerts(path)
+        logger.info("heatstroke_alerts クリーンアップ: %d件削除（過去日付）", deleted_alerts)
+    except Exception as e:
+        logger.warning("heatstroke_alerts クリーンアップ失敗（スキップ）: %s", e)
 
 
 def main() -> None:

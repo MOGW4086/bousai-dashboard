@@ -247,8 +247,7 @@ def delete_past_heatstroke_alerts(db_path: str | None = None) -> int:
 
 
 def get_heatstroke_alerts(db_path: str | None = None) -> list[dict]:
-    """熱中症警戒アラート一覧を返す。取得前に過去日付データを削除する。"""
-    delete_past_heatstroke_alerts(db_path)
+    """熱中症警戒アラート一覧を返す。"""
     with get_conn(db_path) as conn:
         rows = conn.execute(
             "SELECT * FROM heatstroke_alerts ORDER BY target_date DESC, area_name ASC"
