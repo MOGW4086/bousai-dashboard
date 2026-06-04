@@ -33,11 +33,11 @@ def run(db_path: str | None = None) -> None:
             print(f"[{MIGRATION_NAME}] 既に適用済みです")
             return
 
-        # UNIQUE 制約の有無を確認（sqlite_master でインデックスを確認）
-        unique_idx = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='typhoons' AND sql LIKE '%UNIQUE%'"
+        # UNIQUE 制約の有無を確認（sqlite_master でテーブルの DDL を確認）
+        table_sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='typhoons'"
         ).fetchone()
-        if unique_idx is None:
+        if table_sql is None or "UNIQUE" not in table_sql[0].upper():
             # 新規インストール時など: 制約が最初から存在しないケース
             # applied_migrations に記録しておくことで次回の applied チェックで早期終了できる
             print(f"[{MIGRATION_NAME}] UNIQUE 制約は既に存在しません（スキップ）")

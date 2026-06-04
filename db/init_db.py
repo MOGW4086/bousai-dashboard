@@ -126,6 +126,8 @@ CREATE TABLE IF NOT EXISTS xml_feed_state (
 def _run_migration(name: str, file_path: Path, db_path: str | None) -> None:
     """指定マイグレーションファイルを importlib 経由でロードして実行する。"""
     spec = importlib.util.spec_from_file_location(name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load migration spec for {name} at {file_path}")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     mod.run(db_path=db_path)
