@@ -1,5 +1,4 @@
 """VPTW60 台風解析・予報情報 パーサー。"""
-import json
 import logging
 import sys
 from pathlib import Path
@@ -13,8 +12,10 @@ from fetchers.xml_utils import find_text
 logger = logging.getLogger(__name__)
 
 
-def _element_to_dict(el: etree._Element) -> dict:
+def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
     """lxml Element を再帰的に dict へ変換する（raw_json 用）。"""
+    if _depth > 50:
+        return {"_truncated": True}
     result: dict = {}
     # テキストノード
     if el.text and el.text.strip():
@@ -25,7 +26,7 @@ def _element_to_dict(el: etree._Element) -> dict:
     # 子要素
     for child in el:
         tag = child.tag
-        child_dict = _element_to_dict(child)
+        child_dict = _element_to_dict(child, _depth + 1)
         if tag in result:
             existing = result[tag]
             if not isinstance(existing, list):
@@ -39,6 +40,7 @@ def _element_to_dict(el: etree._Element) -> dict:
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     """VPTW60 XMLを解析して台風情報をDBに保存する。保存件数を返す。"""
     total = 0
+    seen_ids: set[str] = set()
 
     meteorological_infos = root.find("Body/MeteorologicalInfos")
     if meteorological_infos is None:
@@ -104,11 +106,18 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         # --- raw_json: Item 要素の内容を dict 化 ---
         raw_json = _element_to_dict(item)
 
+        # 同一電文内の重複 typhoon_id はスキップ
+        if typhoon_id in seen_ids:
+            logger.debug("typhoon_id=%s は同一電文内で重複のためスキップ", typhoon_id)
+            continue
+        seen_ids.add(typhoon_id)
+
         upsert_typhoon(
             typhoon_id=typhoon_id,
             name=name,
             status=status,
             raw_json=raw_json,
+            reported_at=reported_at,
             db_path=db_path,
         )
         logger.info("台風保存: typhoon_id=%s name=%s status=%s", typhoon_id, name, status)

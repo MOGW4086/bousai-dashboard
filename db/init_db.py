@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS typhoons (
     typhoon_id  TEXT NOT NULL UNIQUE,
     name        TEXT,
     status      TEXT,
+    reported_at TEXT,
     raw_json    TEXT,
     fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
