@@ -237,8 +237,18 @@ def upsert_heatstroke_alert(
         )
 
 
+def delete_past_heatstroke_alerts(db_path: str | None = None) -> int:
+    """target_date が今日より前の熱中症警戒アラートを削除する。削除件数を返す。"""
+    with get_conn(db_path) as conn:
+        cursor = conn.execute(
+            "DELETE FROM heatstroke_alerts WHERE target_date < date('now', 'localtime')"
+        )
+        return cursor.rowcount
+
+
 def get_heatstroke_alerts(db_path: str | None = None) -> list[dict]:
-    """熱中症警戒アラート一覧を返す。"""
+    """熱中症警戒アラート一覧を返す。取得前に過去日付データを削除する。"""
+    delete_past_heatstroke_alerts(db_path)
     with get_conn(db_path) as conn:
         rows = conn.execute(
             "SELECT * FROM heatstroke_alerts ORDER BY target_date DESC, area_name ASC"
