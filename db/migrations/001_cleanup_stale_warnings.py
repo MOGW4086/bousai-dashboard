@@ -33,7 +33,7 @@ def run(db_path: str | None = None) -> None:
             "SELECT 1 FROM applied_migrations WHERE name = ?", (MIGRATION_NAME,)
         ).fetchone()
         if already:
-            print("既に適用済みです")
+            print(f"[{MIGRATION_NAME}] 既に適用済みです")
             return
 
         before = conn.execute("SELECT COUNT(*) FROM warnings").fetchone()[0]
