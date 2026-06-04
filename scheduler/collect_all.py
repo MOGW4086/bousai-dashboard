@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
 from db.init_db import init_db
-from db.models import insert_collection_log
+from db.models import cleanup_xml_feed_state, insert_collection_log
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +53,9 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
             logger.error("[%s] 失敗: %s", source, msg)
 
     logger.info("データ収集完了")
+
+    deleted = cleanup_xml_feed_state(path)
+    logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
 
 
 def main() -> None:
