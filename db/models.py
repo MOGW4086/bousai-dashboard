@@ -200,7 +200,7 @@ def upsert_typhoon(
                 name,
                 status,
                 reported_at,
-                json.dumps(raw_json, ensure_ascii=False) if raw_json else None,
+                json.dumps(raw_json, ensure_ascii=False) if raw_json is not None else None,
             ),
         )
 
