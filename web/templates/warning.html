@@ -17,7 +17,7 @@
     <tr>
       <td>{{ w.area_name or w.area_code }}</td>
       <td>{{ w.warning_type }}</td>
-      <td><span class="badge badge-{{ w.level }}">{{ w.level }}</span></td>
+      <td><span class="badge badge-{{ w.level }}">{{ w.level | level_ja }}</span></td>
       <td>{{ w.reported_at or '-' }}</td>
     </tr>
     {% endfor %}

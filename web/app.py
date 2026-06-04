@@ -26,6 +26,18 @@ from db.models import (
 from scheduler.area_master import PREF_MASTER
 
 app = Flask(__name__)
+
+_LEVEL_JA = {
+    "advisory": "注意報",
+    "warning": "警報",
+    "special_warning": "特別警報",
+}
+
+@app.template_filter("level_ja")
+def level_ja_filter(level: str) -> str:
+    """英語の level 値を日本語表示に変換する。"""
+    return _LEVEL_JA.get(level, level)
+
 app.secret_key = Config.SECRET_KEY
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
