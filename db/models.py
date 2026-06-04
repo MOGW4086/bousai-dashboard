@@ -173,7 +173,13 @@ def get_active_warnings(db_path: str | None = None) -> list[dict]:
 
 # ─── typhoons ─────────────────────────────────────────────────────────────────
 
-def upsert_typhoon(
+def delete_all_typhoons(db_path: str | None = None) -> None:
+    """typhoons テーブルの全レコードを削除する（全削除→再挿入方式の事前掃除用）。"""
+    with get_conn(db_path) as conn:
+        conn.execute("DELETE FROM typhoons")
+
+
+def insert_typhoon(
     typhoon_id: str,
     name: str | None,
     status: str | None,
@@ -181,19 +187,12 @@ def upsert_typhoon(
     reported_at: str | None = None,
     db_path: str | None = None,
 ) -> None:
-    """台風情報をupsertする。"""
+    """台風情報を挿入する（全削除→再挿入方式）。"""
     with get_conn(db_path) as conn:
         conn.execute(
             """
             INSERT INTO typhoons (typhoon_id, name, status, reported_at, raw_json)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(typhoon_id)
-            DO UPDATE SET name=excluded.name, status=excluded.status,
-                          reported_at=COALESCE(excluded.reported_at, typhoons.reported_at),
-                          raw_json=excluded.raw_json, fetched_at=datetime('now','localtime')
-            WHERE excluded.reported_at IS NULL
-               OR typhoons.reported_at IS NULL
-               OR excluded.reported_at >= typhoons.reported_at
             """,
             (
                 typhoon_id,

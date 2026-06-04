@@ -1,4 +1,5 @@
 """データベース初期化スクリプト。テーブルが存在しない場合のみ作成する。"""
+import importlib.util
 import sqlite3
 import sys
 from pathlib import Path
@@ -46,10 +47,10 @@ CREATE TABLE IF NOT EXISTS warnings (
     UNIQUE(area_code, warning_type)
 );
 
--- 台風情報
+-- 台風情報（全削除→再挿入方式のため UNIQUE 制約なし）
 CREATE TABLE IF NOT EXISTS typhoons (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    typhoon_id  TEXT NOT NULL UNIQUE,
+    typhoon_id  TEXT NOT NULL,
     name        TEXT,
     status      TEXT,
     reported_at TEXT,
@@ -122,6 +123,14 @@ CREATE TABLE IF NOT EXISTS xml_feed_state (
 """
 
 
+def _run_migration(name: str, file_path: Path, db_path: str | None) -> None:
+    """指定マイグレーションファイルを importlib 経由でロードして実行する。"""
+    spec = importlib.util.spec_from_file_location(name, file_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.run(db_path=db_path)
+
+
 def init_db(db_path: str | None = None) -> None:
     """データベースを初期化する。テーブルが未作成の場合のみ作成。"""
     path = db_path or Config.DB_PATH
@@ -138,6 +147,13 @@ def init_db(db_path: str | None = None) -> None:
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()
+
+    # マイグレーション: typhoons の UNIQUE(typhoon_id) 制約を除去
+    _run_migration(
+        "migration_002",
+        Path(__file__).parent / "migrations" / "002_typhoons_drop_unique.py",
+        db_path,
+    )
 
 
 if __name__ == "__main__":

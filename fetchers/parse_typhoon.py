@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import upsert_typhoon
+from db.models import delete_all_typhoons, insert_typhoon
 from fetchers.xml_utils import find_text
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,11 @@ def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
 
 
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
-    """VPTW60 XMLを解析して台風情報をDBに保存する。保存件数を返す。"""
-    total = 0
+    """VPTW60 XMLを解析して台風情報をDBに保存する。保存件数を返す。
+
+    全削除→再挿入方式を採用しているため、消滅した台風が残り続けることはない。
+    """
+    records: list[dict] = []
     seen_ids: set[str] = set()
 
     meteorological_infos = root.find("Body/MeteorologicalInfos")
@@ -114,15 +117,26 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         # --- raw_json: Item 要素の内容を dict 化 ---
         raw_json = _element_to_dict(item)
 
-        upsert_typhoon(
-            typhoon_id=typhoon_id,
-            name=name,
-            status=status,
-            raw_json=raw_json,
+        records.append(
+            {
+                "typhoon_id": typhoon_id,
+                "name": name,
+                "status": status,
+                "raw_json": raw_json,
+            }
+        )
+
+    # 全削除→再挿入: 解析完了後にまとめて置換する
+    delete_all_typhoons(db_path=db_path)
+    for rec in records:
+        insert_typhoon(
+            typhoon_id=rec["typhoon_id"],
+            name=rec["name"],
+            status=rec["status"],
+            raw_json=rec["raw_json"],
             reported_at=reported_at,
             db_path=db_path,
         )
-        logger.info("台風保存: typhoon_id=%s name=%s status=%s", typhoon_id, name, status)
-        total += 1
+        logger.info("台風保存: typhoon_id=%s name=%s status=%s", rec["typhoon_id"], rec["name"], rec["status"])
 
-    return total
+    return len(records)
