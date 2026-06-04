@@ -38,7 +38,7 @@ def level_ja_filter(level: str | None) -> str:
     """英語の level 値を日本語表示に変換する。None や空文字は空文字を返す。"""
     if not level:
         return ""
-    return _LEVEL_JA.get(level, level)
+    return _LEVEL_JA.get(level.lower(), level)
 
 app.secret_key = Config.SECRET_KEY
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
