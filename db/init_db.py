@@ -130,12 +130,11 @@ def init_db(db_path: str | None = None) -> None:
     try:
         conn.executescript(DDL)
         conn.commit()
-        # 既存 DB への後付けカラム追加（ALTER TABLE は IF NOT EXISTS が使えないため try/except）
-        try:
+        # PRAGMA table_info でカラム存在確認してから ALTER TABLE（OperationalError の隠蔽を防ぐ）
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(typhoons)").fetchall()]
+        if "reported_at" not in columns:
             conn.execute("ALTER TABLE typhoons ADD COLUMN reported_at TEXT")
             conn.commit()
-        except sqlite3.OperationalError:
-            pass  # カラムが既存の場合は無視
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()
