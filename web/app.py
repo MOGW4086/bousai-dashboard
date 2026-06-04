@@ -34,8 +34,10 @@ _LEVEL_JA = {
 }
 
 @app.template_filter("level_ja")
-def level_ja_filter(level: str) -> str:
-    """英語の level 値を日本語表示に変換する。"""
+def level_ja_filter(level: str | None) -> str:
+    """英語の level 値を日本語表示に変換する。None や空文字は空文字を返す。"""
+    if not level:
+        return ""
     return _LEVEL_JA.get(level, level)
 
 app.secret_key = Config.SECRET_KEY
