@@ -49,9 +49,12 @@ def run(db_path: str | None = None) -> None:
         ).rowcount
 
         # 3. VPWW53 処理済みフラグをリセット（次回再取得させる）
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='xml_feed_state'"
+        ).fetchone()
         r3_count = conn.execute(
             "DELETE FROM xml_feed_state WHERE entry_id LIKE '%VPWW53%'"
-        ).rowcount
+        ).rowcount if exists else 0
 
         after = conn.execute("SELECT COUNT(*) FROM warnings").fetchone()[0]
 
