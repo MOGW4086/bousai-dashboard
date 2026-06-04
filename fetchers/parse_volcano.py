@@ -13,7 +13,8 @@ from fetchers.xml_utils import find_text
 logger = logging.getLogger(__name__)
 
 # Head/Title 形式: "火山名　桜島　降灰予報（定時）"
-_TITLE_RE = re.compile(r"火山名\s*(.+?)\s*降灰")
+_TITLE_RE = re.compile(r"火山名\s+(.+?)\s+降灰")
+_SUBTYPE_RE = re.compile(r"(降灰予報(?:[（(][^）)]+[）)])?)")
 
 
 def _extract_volcano_name(title: str) -> str | None:
@@ -22,10 +23,16 @@ def _extract_volcano_name(title: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def _extract_alert_type(title: str) -> str:
+    """タイトルから降灰予報のサブタイプを抽出する（例: '降灰予報（定時）'）。"""
+    m = _SUBTYPE_RE.search(title)
+    return m.group(1).strip() if m and m.group(1) else "降灰予報"
+
+
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     """VFVO53 XMLを解析して降灰予報をDBに保存する。保存件数を返す。"""
     title = find_text(root, "Head/Title") or ""
-    alert_type = "降灰予報"  # UNIQUE(volcano_name, alert_type) を安定させるため固定値
+    alert_type = _extract_alert_type(title)
 
     volcano_name = _extract_volcano_name(title)
     if not volcano_name:
