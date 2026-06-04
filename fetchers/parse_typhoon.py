@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import delete_all_typhoons, insert_typhoon
+from db.models import replace_all_typhoons
 from fetchers.xml_utils import find_text
 
 logger = logging.getLogger(__name__)
@@ -126,17 +126,9 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             }
         )
 
-    # 全削除→再挿入: 解析完了後にまとめて置換する
-    delete_all_typhoons(db_path=db_path)
+    # 全削除→再挿入: 解析完了後にまとめて1トランザクションで置換する
+    replace_all_typhoons(records, reported_at=reported_at, db_path=db_path)
     for rec in records:
-        insert_typhoon(
-            typhoon_id=rec["typhoon_id"],
-            name=rec["name"],
-            status=rec["status"],
-            raw_json=rec["raw_json"],
-            reported_at=reported_at,
-            db_path=db_path,
-        )
         logger.info("台風保存: typhoon_id=%s name=%s status=%s", rec["typhoon_id"], rec["name"], rec["status"])
 
     return len(records)

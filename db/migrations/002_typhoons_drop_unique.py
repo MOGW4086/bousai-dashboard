@@ -38,6 +38,8 @@ def run(db_path: str | None = None) -> None:
             "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='typhoons' AND sql LIKE '%UNIQUE%'"
         ).fetchone()
         if unique_idx is None:
+            # 新規インストール時など: 制約が最初から存在しないケース
+            # applied_migrations に記録しておくことで次回の applied チェックで早期終了できる
             print(f"[{MIGRATION_NAME}] UNIQUE 制約は既に存在しません（スキップ）")
             conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
             return

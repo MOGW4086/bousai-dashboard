@@ -204,6 +204,27 @@ def insert_typhoon(
         )
 
 
+def replace_all_typhoons(
+    records: list[dict],
+    reported_at: str | None = None,
+    db_path: str | None = None,
+) -> None:
+    """台風情報を全削除→再挿入で置換する（1トランザクション）。"""
+    with get_conn(db_path) as conn:
+        conn.execute("DELETE FROM typhoons")
+        for rec in records:
+            conn.execute(
+                "INSERT INTO typhoons (typhoon_id, name, status, reported_at, raw_json) VALUES (?, ?, ?, ?, ?)",
+                (
+                    rec["typhoon_id"],
+                    rec["name"],
+                    rec["status"],
+                    reported_at,
+                    json.dumps(rec["raw_json"], ensure_ascii=False) if rec["raw_json"] is not None else None,
+                ),
+            )
+
+
 def get_active_typhoons(db_path: str | None = None) -> list[dict]:
     """現在の台風情報一覧を返す。"""
     with get_conn(db_path) as conn:
