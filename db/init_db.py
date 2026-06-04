@@ -134,7 +134,7 @@ def init_db(db_path: str | None = None) -> None:
         try:
             conn.execute("ALTER TABLE typhoons ADD COLUMN reported_at TEXT")
             conn.commit()
-        except Exception:
+        except sqlite3.OperationalError:
             pass  # カラムが既存の場合は無視
         print(f"[init_db] DB初期化完了: {path}")
     finally:
