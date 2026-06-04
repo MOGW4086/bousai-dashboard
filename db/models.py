@@ -189,7 +189,7 @@ def upsert_typhoon(
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(typhoon_id)
             DO UPDATE SET name=excluded.name, status=excluded.status,
-                          reported_at=excluded.reported_at,
+                          reported_at=COALESCE(excluded.reported_at, typhoons.reported_at),
                           raw_json=excluded.raw_json, fetched_at=datetime('now','localtime')
             WHERE excluded.reported_at IS NULL
                OR typhoons.reported_at IS NULL
