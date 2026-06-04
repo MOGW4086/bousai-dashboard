@@ -54,8 +54,11 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
 
     logger.info("データ収集完了")
 
-    deleted = cleanup_xml_feed_state(path)
-    logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
+    try:
+        deleted = cleanup_xml_feed_state(path)
+        logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
+    except Exception as e:
+        logger.warning("xml_feed_state クリーンアップ失敗（スキップ）: %s", e)
 
 
 def main() -> None:
