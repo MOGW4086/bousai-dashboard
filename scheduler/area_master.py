@@ -85,10 +85,18 @@ def get_pref_name_from_area_code(area_code: str) -> str:
     """一次細分区域コードから都道府県名を返す。"""
     if not area_code or len(area_code) < 3:
         return ""
-    key = area_code[:3] + "000"
-    if key in PREF_MASTER:
-        return PREF_MASTER[key]
-    for k, v in PREF_MASTER.items():
-        if k.startswith(area_code[:3]):
-            return v
+    best_key = ""
+    max_len = 0
+    for k in PREF_MASTER:
+        temp_len = 0
+        for c1, c2 in zip(k, area_code):
+            if c1 == c2:
+                temp_len += 1
+            else:
+                break
+        if temp_len > max_len:
+            max_len = temp_len
+            best_key = k
+    if max_len >= 2:
+        return PREF_MASTER[best_key]
     return ""

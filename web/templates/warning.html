@@ -15,7 +15,7 @@
   <tbody>
     {% for w in warnings %}
     <tr>
-      <td>{% if w.pref_name %}{{ w.pref_name }} {% endif %}{{ w.area_name or w.area_code }}</td>
+      <td>{% if w.pref_name and w.pref_name != w.area_name %}{{ w.pref_name }} {% endif %}{{ w.area_name or w.area_code }}</td>
       <td>{{ w.warning_type }}</td>
       <td>{% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}</td>
       <td>{{ w.reported_at or '-' }}</td>
