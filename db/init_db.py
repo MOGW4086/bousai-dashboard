@@ -119,6 +119,8 @@ CREATE TABLE IF NOT EXISTS xml_feed_state (
     entry_id     TEXT PRIMARY KEY,
     processed_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_xml_feed_state_processed_at ON xml_feed_state(processed_at);
 """
 
 
