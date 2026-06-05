@@ -8,7 +8,7 @@ UNIQUE 制約が不要になった。SQLite では制約の直接削除ができ
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from db.models import get_conn
 
 MIGRATION_NAME = "migration_002"
