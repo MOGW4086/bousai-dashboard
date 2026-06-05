@@ -96,6 +96,8 @@ def dashboard():
     viewer_areas = get_viewer_areas(g.viewer_id)
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
     warnings = get_active_warnings()
+    for w in warnings:
+        w['pref_name'] = PREF_MASTER.get(w['area_code'][:6], '')
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
@@ -118,6 +120,8 @@ def quake():
 def warning():
     """警報・注意報一覧ページ。"""
     warnings = get_active_warnings()
+    for w in warnings:
+        w['pref_name'] = PREF_MASTER.get(w['area_code'][:6], '')
     last_updated = _get_last_updated()
     return _make_response_with_cookie("warning.html", warnings=warnings, last_updated=last_updated)
 
