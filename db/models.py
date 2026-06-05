@@ -2,7 +2,6 @@
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
 from typing import Generator
 
 from config import Config
@@ -268,18 +267,6 @@ def get_heatstroke_alerts(db_path: str | None = None) -> list[dict]:
             "SELECT * FROM heatstroke_alerts ORDER BY target_date DESC, area_name ASC"
         ).fetchall()
         return [dict(r) for r in rows]
-
-
-def delete_past_heatstroke_alerts(db_path: str | None = None, today: str | None = None) -> int:
-    """target_date が今日より前の熱中症警戒アラートを削除する。削除件数を返す。"""
-    if today is None:
-        today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
-    with get_conn(db_path) as conn:
-        cursor = conn.execute(
-            "DELETE FROM heatstroke_alerts WHERE target_date < ?",
-            (today,)
-        )
-        return cursor.rowcount
 
 
 # ─── volcano_alerts ───────────────────────────────────────────────────────────
