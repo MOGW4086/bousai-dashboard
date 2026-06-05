@@ -11,6 +11,7 @@ from config import Config
 from db.init_db import init_db
 from db.models import (
     cleanup_xml_feed_state,
+    delete_defunct_typhoons,
     delete_past_heatstroke_alerts,
     insert_collection_log,
 )
@@ -78,6 +79,12 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
         delete_past_heatstroke_alerts,
         "heatstroke_alerts",
         "heatstroke_alerts クリーンアップ: %d件削除（過去日付）",
+        path
+    )
+    _run_cleanup_task(
+        delete_defunct_typhoons,
+        "typhoons(defunct)",
+        "消滅台風クリーンアップ: %d件削除",
         path
     )
 
