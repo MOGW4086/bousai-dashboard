@@ -7,6 +7,9 @@ from typing import Generator
 
 from config import Config
 
+JST = timezone(timedelta(hours=9))
+XML_FEED_STATE_RETENTION_DAYS = 14
+
 
 @contextmanager
 def get_conn(db_path: str | None = None) -> Generator[sqlite3.Connection, None, None]:
@@ -241,7 +244,7 @@ def upsert_heatstroke_alert(
 def delete_past_heatstroke_alerts(db_path: str | None = None, today: str | None = None) -> int:
     """target_date が今日より前の熱中症警戒アラートを削除する。削除件数を返す。"""
     if today is None:
-        today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
+        today = datetime.now(JST).strftime("%Y-%m-%d")
     with get_conn(db_path) as conn:
         cursor = conn.execute(
             "DELETE FROM heatstroke_alerts WHERE target_date < ?",
@@ -377,8 +380,7 @@ def mark_processed(entry_id: str, db_path=None) -> None:
 def cleanup_xml_feed_state(db_path: str | None = None, threshold: str | None = None) -> int:
     """14日以上前に処理済みのxml_feed_stateエントリを削除する。削除件数を返す。"""
     if threshold is None:
-        jst = timezone(timedelta(hours=9))
-        threshold = (datetime.now(jst) - timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+        threshold = (datetime.now(JST) - timedelta(days=XML_FEED_STATE_RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
     with get_conn(db_path) as conn:
         cur = conn.execute(
             "DELETE FROM xml_feed_state WHERE processed_at < ?",

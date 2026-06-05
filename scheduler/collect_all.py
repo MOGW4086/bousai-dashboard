@@ -35,6 +35,15 @@ def run_fetcher(source: str, db_path: str) -> tuple[str, int, str | None]:
         return "error", 0, str(e)
 
 
+def _run_cleanup_task(task_func, task_name: str, success_log_msg: str, db_path: str | None) -> None:
+    """クリーンアップタスクを実行し、例外が発生してもスキップして警告ログを出す。"""
+    try:
+        deleted_count = task_func(db_path)
+        logger.info(success_log_msg, deleted_count)
+    except Exception as e:
+        logger.warning("%s クリーンアップ失敗（スキップ）: %s", task_name, e, exc_info=True)
+
+
 def collect(sources: list[str], db_path: str | None = None) -> None:
     """指定ソース一覧のデータを収集する。"""
     path = db_path or Config.DB_PATH
@@ -58,17 +67,18 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
 
     logger.info("データ収集完了")
 
-    try:
-        deleted = cleanup_xml_feed_state(path)
-        logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
-    except Exception as e:
-        logger.warning("xml_feed_state クリーンアップ失敗（スキップ）: %s", e, exc_info=True)
-
-    try:
-        deleted_alerts = delete_past_heatstroke_alerts(path)
-        logger.info("heatstroke_alerts クリーンアップ: %d件削除（過去日付）", deleted_alerts)
-    except Exception as e:
-        logger.warning("heatstroke_alerts クリーンアップ失敗（スキップ）: %s", e, exc_info=True)
+    _run_cleanup_task(
+        cleanup_xml_feed_state,
+        "xml_feed_state",
+        "xml_feed_state クリーンアップ: %d件削除（14日以上前）",
+        path
+    )
+    _run_cleanup_task(
+        delete_past_heatstroke_alerts,
+        "heatstroke_alerts",
+        "heatstroke_alerts クリーンアップ: %d件削除（過去日付）",
+        path
+    )
 
 
 def main() -> None:
