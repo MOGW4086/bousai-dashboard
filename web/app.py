@@ -88,6 +88,12 @@ def _get_last_updated() -> str | None:
     return max(ran_ats) if ran_ats else None
 
 
+def _enrich_warnings_with_pref(warnings: list[dict]) -> None:
+    """警報リストに都道府県名を付与する（インプレース）。"""
+    for w in warnings:
+        w["pref_name"] = get_pref_name_from_area_code(w["area_code"])
+
+
 # ─── ページルーティング ────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -96,8 +102,7 @@ def dashboard():
     viewer_areas = get_viewer_areas(g.viewer_id)
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
     warnings = get_active_warnings()
-    for w in warnings:
-        w["pref_name"] = get_pref_name_from_area_code(w["area_code"])
+    _enrich_warnings_with_pref(warnings)
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
@@ -120,8 +125,7 @@ def quake():
 def warning():
     """警報・注意報一覧ページ。"""
     warnings = get_active_warnings()
-    for w in warnings:
-        w["pref_name"] = get_pref_name_from_area_code(w["area_code"])
+    _enrich_warnings_with_pref(warnings)
     last_updated = _get_last_updated()
     return _make_response_with_cookie("warning.html", warnings=warnings, last_updated=last_updated)
 

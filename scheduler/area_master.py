@@ -83,7 +83,7 @@ def get_pref_name(pref_code: str) -> str:
 
 
 @cache
-def get_pref_name_from_area_code(area_code: str) -> str:
+def get_pref_name_from_area_code(area_code: str | None) -> str:
     """一次細分区域コードから都道府県名を返す。"""
     if not area_code or len(area_code) < 3:
         return ""
