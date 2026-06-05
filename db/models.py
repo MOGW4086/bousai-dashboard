@@ -380,7 +380,7 @@ def mark_processed(entry_id: str, db_path=None) -> None:
 def cleanup_xml_feed_state(db_path: str | None = None, threshold: str | None = None) -> int:
     """14日以上前に処理済みのxml_feed_stateエントリを削除する。削除件数を返す。"""
     if threshold is None:
-        threshold = (datetime.now(JST) - timedelta(days=XML_FEED_STATE_RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        threshold = (datetime.now() - timedelta(days=XML_FEED_STATE_RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
     with get_conn(db_path) as conn:
         cur = conn.execute(
             "DELETE FROM xml_feed_state WHERE processed_at < ?",
