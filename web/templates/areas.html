@@ -15,7 +15,6 @@
     <thead>
       <tr>
         <th>地域名</th>
-        <th>都道府県名</th>
         <th>優先度</th>
         <th>登録日時</th>
         <th>操作</th>
@@ -25,7 +24,6 @@
       {% for area in viewer_areas %}
       <tr>
         <td>{{ area.name }}</td>
-        <td>{{ area.pref_name }}</td>
         <td>{{ area.priority }}</td>
         <td>{{ area.created_at }}</td>
         <td>

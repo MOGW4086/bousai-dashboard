@@ -189,8 +189,6 @@ def areas():
         return jsonify({"ok": True})
 
     viewer_areas = get_viewer_areas(g.viewer_id)
-    for a in viewer_areas:
-        a["pref_name"] = PREF_MASTER.get(a["pref_code"], a["pref_code"])
     return _make_response_with_cookie(
         "areas.html",
         viewer_areas=viewer_areas,
