@@ -53,13 +53,11 @@ def run(db_path: str | None = None) -> None:
             # applied_migrations に記録しておくことで次回の applied チェックで早期終了できる
             print(f"[{MIGRATION_NAME}] UNIQUE 制約は既に存在しません（スキップ）")
             conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
-            conn.commit()
             return
 
         before_count = conn.execute("SELECT COUNT(*) FROM typhoons").fetchone()[0]
 
         # テーブル再作成で UNIQUE 制約を除去
-        conn.isolation_level = None
         conn.execute("BEGIN")
         try:
             conn.execute("""
