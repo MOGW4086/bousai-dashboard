@@ -174,7 +174,11 @@ def get_active_warnings(db_path: str | None = None) -> list[dict]:
 # ─── typhoons ─────────────────────────────────────────────────────────────────
 
 def delete_all_typhoons(db_path: str | None = None) -> None:
-    """typhoons テーブルの全レコードを削除する（全削除→再挿入方式の事前掃除用）。"""
+    """typhoons テーブルの全レコードを削除する。
+
+    注意: トランザクション整合性の観点から個別呼び出しは非推奨。
+    一括処理には replace_all_typhoons を使用してください。
+    """
     with get_conn(db_path) as conn:
         conn.execute("DELETE FROM typhoons")
 
@@ -187,7 +191,11 @@ def insert_typhoon(
     reported_at: str | None = None,
     db_path: str | None = None,
 ) -> None:
-    """台風情報を挿入する（全削除→再挿入方式）。"""
+    """台風情報を挿入する。
+
+    注意: トランザクション整合性の観点から個別呼び出しは非推奨。
+    一括処理には replace_all_typhoons を使用してください。
+    """
     with get_conn(db_path) as conn:
         conn.execute(
             """

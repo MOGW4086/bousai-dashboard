@@ -19,6 +19,7 @@ def run(db_path: str | None = None) -> None:
     """typhoons テーブルの UNIQUE(typhoon_id) 制約を除去する。"""
     path = db_path or Config.DB_PATH
     conn = sqlite3.connect(path)
+    conn.isolation_level = None  # autocommit モード: 途中 return 時の暗黙的トランザクション回避
     try:
         # applied_migrations テーブルを作成（なければ）
         conn.execute("""
@@ -36,11 +37,18 @@ def run(db_path: str | None = None) -> None:
             print(f"[{MIGRATION_NAME}] 既に適用済みです")
             return
 
-        # UNIQUE 制約の有無を確認（sqlite_master でテーブルの DDL を確認）
+        # UNIQUE 制約の有無を確認（sqlite_master でテーブルの DDL を確認、コメント行は除外）
         table_sql = conn.execute(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='typhoons'"
         ).fetchone()
-        if table_sql is None or "UNIQUE" not in table_sql[0].upper():
+
+        sql_clean = ""
+        if table_sql and table_sql[0]:
+            sql_clean = "\n".join(
+                line for line in table_sql[0].splitlines() if not line.strip().startswith("--")
+            )
+
+        if table_sql is None or "UNIQUE" not in sql_clean.upper():
             # 新規インストール時など: 制約が最初から存在しないケース
             # applied_migrations に記録しておくことで次回の applied チェックで早期終了できる
             print(f"[{MIGRATION_NAME}] UNIQUE 制約は既に存在しません（スキップ）")
