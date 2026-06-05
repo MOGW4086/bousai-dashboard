@@ -62,13 +62,13 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
         deleted = cleanup_xml_feed_state(path)
         logger.info("xml_feed_state クリーンアップ: %d件削除（14日以上前）", deleted)
     except Exception as e:
-        logger.warning("xml_feed_state クリーンアップ失敗（スキップ）: %s", e)
+        logger.warning("xml_feed_state クリーンアップ失敗（スキップ）: %s", e, exc_info=True)
 
     try:
         deleted_alerts = delete_past_heatstroke_alerts(path)
         logger.info("heatstroke_alerts クリーンアップ: %d件削除（過去日付）", deleted_alerts)
     except Exception as e:
-        logger.warning("heatstroke_alerts クリーンアップ失敗（スキップ）: %s", e)
+        logger.warning("heatstroke_alerts クリーンアップ失敗（スキップ）: %s", e, exc_info=True)
 
 
 def main() -> None:
