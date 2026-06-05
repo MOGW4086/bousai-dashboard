@@ -91,7 +91,7 @@ def _get_last_updated() -> str | None:
 def _enrich_warnings_with_pref(warnings: list[dict]) -> None:
     """警報リストに都道府県名を付与する（インプレース）。"""
     for w in warnings:
-        w["pref_name"] = get_pref_name_from_area_code(w["area_code"])
+        w["pref_name"] = get_pref_name_from_area_code(w.get("area_code"))
 
 
 # ─── ページルーティング ────────────────────────────────────────────────────────

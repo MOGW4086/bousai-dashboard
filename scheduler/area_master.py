@@ -100,4 +100,6 @@ def get_pref_name_from_area_code(area_code: str | None) -> str:
         if temp_len > max_len:
             max_len = temp_len
             best_key = k
+        if max_len == 6:
+            break
     return PREF_MASTER[best_key] if max_len >= 2 else ""
