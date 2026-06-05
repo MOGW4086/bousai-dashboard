@@ -5,18 +5,22 @@ typhoons テーブルを ON CONFLICT upsert 方式から全削除→再挿入方
 UNIQUE 制約が不要になった。SQLite では制約の直接削除ができないため、
 テーブルを再作成して既存データを移行する。
 """
+import json
+import sqlite3
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from db.models import get_conn
+from config import Config
 
 MIGRATION_NAME = "migration_002"
 
 
 def run(db_path: str | None = None) -> None:
     """typhoons テーブルの UNIQUE(typhoon_id) 制約を除去する。"""
-    with get_conn(db_path) as conn:
+    path = db_path or Config.DB_PATH
+    conn = sqlite3.connect(path)
+    try:
         # applied_migrations テーブルを作成（なければ）
         conn.execute("""
             CREATE TABLE IF NOT EXISTS applied_migrations (
@@ -42,14 +46,12 @@ def run(db_path: str | None = None) -> None:
             # applied_migrations に記録しておくことで次回の applied チェックで早期終了できる
             print(f"[{MIGRATION_NAME}] UNIQUE 制約は既に存在しません（スキップ）")
             conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
+            conn.commit()
             return
 
         before_count = conn.execute("SELECT COUNT(*) FROM typhoons").fetchone()[0]
 
         # テーブル再作成で UNIQUE 制約を除去
-        # DDL は autocommit モードで明示的トランザクションを使用し、
-        # 途中エラー時に確実にロールバックされるようにする
-        original_isolation_level = conn.isolation_level
         conn.isolation_level = None
         conn.execute("BEGIN")
         try:
@@ -70,19 +72,17 @@ def run(db_path: str | None = None) -> None:
             """)
             conn.execute("DROP TABLE typhoons")
             conn.execute("ALTER TABLE typhoons_new RENAME TO typhoons")
+            conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
             conn.execute("COMMIT")
         except Exception as e:
             conn.execute("ROLLBACK")
             raise e
-        finally:
-            conn.isolation_level = original_isolation_level
 
         after_count = conn.execute("SELECT COUNT(*) FROM typhoons").fetchone()[0]
+        print(f"[002] typhoons: UNIQUE 制約を削除（レコード数: {before_count} → {after_count}）")
 
-        # マイグレーション適用を記録
-        conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
-
-    print(f"[002] typhoons: UNIQUE 制約を削除（レコード数: {before_count} → {after_count}）")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

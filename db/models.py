@@ -217,11 +217,11 @@ def replace_all_typhoons(
                 "INSERT INTO typhoons (typhoon_id, name, status, reported_at, raw_json) VALUES (?, ?, ?, ?, ?)",
                 [
                     (
-                        rec["typhoon_id"],
-                        rec["name"],
-                        rec["status"],
+                        rec.get("typhoon_id"),
+                        rec.get("name"),
+                        rec.get("status"),
                         reported_at,
-                        json.dumps(rec["raw_json"], ensure_ascii=False) if rec["raw_json"] is not None else None,
+                        json.dumps(rec.get("raw_json"), ensure_ascii=False) if rec.get("raw_json") is not None else None,
                     )
                     for rec in records
                 ],
