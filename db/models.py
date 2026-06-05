@@ -178,16 +178,17 @@ def get_active_warnings(db_path: str | None = None) -> list[dict]:
 # ─── typhoons ─────────────────────────────────────────────────────────────────
 
 # 消滅扱いとするステータス値
-DEFUNCT_TYPHOON_STATUSES = {"温帯低気圧(LOW)"}
+DEFUNCT_TYPHOON_STATUSES = {"温帯低気圧(LOW)", "熱帯低気圧(TD)"}
 
 
-def delete_defunct_typhoons(db_path: str | None = None) -> int:
-    """消滅済みステータス（温帯低気圧化等）の台風レコードを削除する。削除件数を返す。"""
+def delete_defunct_typhoons(db_path: str | None = None, limit_hours: int = 168) -> int:
+    """消滅済みステータス（温帯低気圧化・熱帯低気圧化等）または7日間更新のない台風レコードを削除する。削除件数を返す。"""
+    threshold = (datetime.now() - timedelta(hours=limit_hours)).strftime("%Y-%m-%d %H:%M:%S")
     placeholders = ",".join("?" * len(DEFUNCT_TYPHOON_STATUSES))
     with get_conn(db_path) as conn:
         cur = conn.execute(
-            f"DELETE FROM typhoons WHERE status IN ({placeholders})",
-            tuple(DEFUNCT_TYPHOON_STATUSES),
+            f"DELETE FROM typhoons WHERE status IN ({placeholders}) OR fetched_at < ?",
+            tuple(DEFUNCT_TYPHOON_STATUSES) + (threshold,),
         )
         return cur.rowcount
 
