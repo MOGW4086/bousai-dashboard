@@ -177,6 +177,21 @@ def get_active_warnings(db_path: str | None = None) -> list[dict]:
 
 # ─── typhoons ─────────────────────────────────────────────────────────────────
 
+# 消滅扱いとするステータス値
+DEFUNCT_TYPHOON_STATUSES = {"温帯低気圧(LOW)"}
+
+
+def delete_defunct_typhoons(db_path: str | None = None) -> int:
+    """消滅済みステータス（温帯低気圧化等）の台風レコードを削除する。削除件数を返す。"""
+    placeholders = ",".join("?" * len(DEFUNCT_TYPHOON_STATUSES))
+    with get_conn(db_path) as conn:
+        cur = conn.execute(
+            f"DELETE FROM typhoons WHERE status IN ({placeholders})",
+            tuple(DEFUNCT_TYPHOON_STATUSES),
+        )
+        return cur.rowcount
+
+
 def upsert_typhoon(
     typhoon_id: str,
     name: str | None,
