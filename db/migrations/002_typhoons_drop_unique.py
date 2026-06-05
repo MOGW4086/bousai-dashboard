@@ -5,7 +5,6 @@ typhoons テーブルを ON CONFLICT upsert 方式から全削除→再挿入方
 UNIQUE 制約が不要になった。SQLite では制約の直接削除ができないため、
 テーブルを再作成して既存データを移行する。
 """
-import json
 import sqlite3
 import sys
 from pathlib import Path
