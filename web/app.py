@@ -23,7 +23,7 @@ from db.models import (
     get_volcano_alerts,
     upsert_viewer_area,
 )
-from scheduler.area_master import PREF_MASTER
+from scheduler.area_master import PREF_MASTER, get_pref_name_from_area_code
 
 app = Flask(__name__)
 
@@ -97,7 +97,7 @@ def dashboard():
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
     warnings = get_active_warnings()
     for w in warnings:
-        w['pref_name'] = PREF_MASTER.get(w['area_code'][:6], '')
+        w['pref_name'] = get_pref_name_from_area_code(w['area_code'])
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
@@ -121,7 +121,7 @@ def warning():
     """警報・注意報一覧ページ。"""
     warnings = get_active_warnings()
     for w in warnings:
-        w['pref_name'] = PREF_MASTER.get(w['area_code'][:6], '')
+        w['pref_name'] = get_pref_name_from_area_code(w['area_code'])
     last_updated = _get_last_updated()
     return _make_response_with_cookie("warning.html", warnings=warnings, last_updated=last_updated)
 
@@ -189,6 +189,8 @@ def areas():
         return jsonify({"ok": True})
 
     viewer_areas = get_viewer_areas(g.viewer_id)
+    for a in viewer_areas:
+        a['pref_name'] = PREF_MASTER.get(a['pref_code'], a['pref_code'])
     return _make_response_with_cookie(
         "areas.html",
         viewer_areas=viewer_areas,

@@ -79,3 +79,14 @@ PREF_CODES: list[str] = list(PREF_MASTER.keys())
 def get_pref_name(pref_code: str) -> str:
     """都道府県コードから名称を返す。未知のコードは空文字を返す。"""
     return PREF_MASTER.get(pref_code, "")
+
+
+def get_pref_name_from_area_code(area_code: str) -> str:
+    """一次細分区域コードから都道府県名を返す。"""
+    key = area_code[:3] + "000"
+    if key in PREF_MASTER:
+        return PREF_MASTER[key]
+    for k, v in PREF_MASTER.items():
+        if k.startswith(area_code[:3]):
+            return v
+    return ""
