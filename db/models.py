@@ -2,6 +2,7 @@
 import json
 import sqlite3
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Generator
 
 from config import Config
@@ -240,7 +241,6 @@ def upsert_heatstroke_alert(
 def delete_past_heatstroke_alerts(db_path: str | None = None, today: str | None = None) -> int:
     """target_date が今日より前の熱中症警戒アラートを削除する。削除件数を返す。"""
     if today is None:
-        from datetime import datetime, timedelta, timezone
         today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
     with get_conn(db_path) as conn:
         cursor = conn.execute(
