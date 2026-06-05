@@ -2,6 +2,7 @@
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -35,7 +36,7 @@ def run_fetcher(source: str, db_path: str) -> tuple[str, int, str | None]:
         return "error", 0, str(e)
 
 
-def _run_cleanup_task(task_func, task_name: str, success_log_msg: str, db_path: str | None) -> None:
+def _run_cleanup_task(task_func: Callable[[str | None], int], task_name: str, success_log_msg: str, db_path: str | None) -> None:
     """クリーンアップタスクを実行し、例外が発生してもスキップして警告ログを出す。"""
     try:
         deleted_count = task_func(db_path)
