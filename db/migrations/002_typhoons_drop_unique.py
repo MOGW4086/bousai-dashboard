@@ -47,23 +47,35 @@ def run(db_path: str | None = None) -> None:
         before_count = conn.execute("SELECT COUNT(*) FROM typhoons").fetchone()[0]
 
         # テーブル再作成で UNIQUE 制約を除去
-        conn.execute("""
-            CREATE TABLE typhoons_new (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                typhoon_id  TEXT NOT NULL,
-                name        TEXT,
-                status      TEXT,
-                reported_at TEXT,
-                raw_json    TEXT,
-                fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-            )
-        """)
-        conn.execute("""
-            INSERT INTO typhoons_new (id, typhoon_id, name, status, reported_at, raw_json, fetched_at)
-            SELECT id, typhoon_id, name, status, reported_at, raw_json, fetched_at FROM typhoons
-        """)
-        conn.execute("DROP TABLE typhoons")
-        conn.execute("ALTER TABLE typhoons_new RENAME TO typhoons")
+        # DDL は autocommit モードで明示的トランザクションを使用し、
+        # 途中エラー時に確実にロールバックされるようにする
+        original_isolation_level = conn.isolation_level
+        conn.isolation_level = None
+        conn.execute("BEGIN")
+        try:
+            conn.execute("""
+                CREATE TABLE typhoons_new (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    typhoon_id  TEXT NOT NULL,
+                    name        TEXT,
+                    status      TEXT,
+                    reported_at TEXT,
+                    raw_json    TEXT,
+                    fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            """)
+            conn.execute("""
+                INSERT INTO typhoons_new (id, typhoon_id, name, status, reported_at, raw_json, fetched_at)
+                SELECT id, typhoon_id, name, status, reported_at, raw_json, fetched_at FROM typhoons
+            """)
+            conn.execute("DROP TABLE typhoons")
+            conn.execute("ALTER TABLE typhoons_new RENAME TO typhoons")
+            conn.execute("COMMIT")
+        except Exception as e:
+            conn.execute("ROLLBACK")
+            raise e
+        finally:
+            conn.isolation_level = original_isolation_level
 
         after_count = conn.execute("SELECT COUNT(*) FROM typhoons").fetchone()[0]
 
