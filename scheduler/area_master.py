@@ -81,10 +81,16 @@ def get_pref_name(pref_code: str) -> str:
     return PREF_MASTER.get(pref_code, "")
 
 
+_AREA_PREF_CACHE: dict[str, str] = {}
+
+
 def get_pref_name_from_area_code(area_code: str) -> str:
     """一次細分区域コードから都道府県名を返す。"""
     if not area_code or len(area_code) < 3:
         return ""
+    if area_code in _AREA_PREF_CACHE:
+        return _AREA_PREF_CACHE[area_code]
+
     best_key = ""
     max_len = 0
     for k in PREF_MASTER:
@@ -97,6 +103,6 @@ def get_pref_name_from_area_code(area_code: str) -> str:
         if temp_len > max_len:
             max_len = temp_len
             best_key = k
-    if max_len >= 2:
-        return PREF_MASTER[best_key]
-    return ""
+    res = PREF_MASTER[best_key] if max_len >= 2 else ""
+    _AREA_PREF_CACHE[area_code] = res
+    return res
