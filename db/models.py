@@ -387,27 +387,29 @@ def delete_all_tsunami_warnings(db_path: str | None = None) -> None:
 
 def replace_all_tsunami_warnings(
     rows: list[tuple[str, str | None, str | None, str | None]],
+    telegram_type: str = "",
     db_path: str | None = None,
 ) -> None:
-    """全削除 + 一括挿入をatomicトランザクションで実行する。
+    """指定 telegram_type の全レコードを削除して新しいレコードを挿入する。
 
     Args:
         rows: (area_code, area_name, category, reported_at) のタプルリスト。
-              空リストを渡すと全件削除のみ（解除電文用）。
+              空リストを渡すと指定 telegram_type のレコードのみ削除（解除電文用）。
+        telegram_type: 電文種別（"VTSE41" / "VTWW53" 等）。異なる種別を上書きしない。
         db_path: DBパス。Noneの場合はConfig.DB_PATHを使用。
     """
     with get_conn(db_path) as conn:
-        conn.execute("DELETE FROM tsunami_warnings")
+        conn.execute("DELETE FROM tsunami_warnings WHERE telegram_type = ?", (telegram_type,))
         if rows:
             conn.executemany(
                 """
-                INSERT INTO tsunami_warnings (area_code, area_name, category, reported_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(area_code)
+                INSERT INTO tsunami_warnings (area_code, area_name, category, telegram_type, reported_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(area_code, telegram_type)
                 DO UPDATE SET area_name=excluded.area_name, category=excluded.category,
                               reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
                 """,
-                rows,
+                [(r[0], r[1], r[2], telegram_type, r[3]) for r in rows],
             )
 
 
