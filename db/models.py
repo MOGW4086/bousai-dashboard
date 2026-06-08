@@ -413,7 +413,7 @@ def replace_all_tsunami_warnings(
             )
 
 
-def delete_expired_tsunami_warnings(hours: int = 24, db_path: str | None = None) -> int:
+def delete_expired_tsunami_warnings(db_path: str | None = None, hours: int = 24) -> int:
     """fetched_at から指定時間（デフォルト24時間）を超えた津波警報を削除する。削除件数を返す。"""
     threshold = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
     with get_conn(db_path) as conn:
