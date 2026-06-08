@@ -12,6 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from db.models import (
     delete_viewer_area,
+    get_active_tsunami_warnings,
     get_active_typhoons,
     get_active_warnings,
     get_flood_forecasts,
@@ -92,16 +93,18 @@ def _get_last_updated() -> str | None:
 
 @app.route("/")
 def dashboard():
-    """ダッシュボードトップ。登録地域のサマリー + 最新地震 + 現在警報。"""
+    """ダッシュボードトップ。登録地域のサマリー + 最新地震 + 現在警報 + 津波情報。"""
     viewer_areas = get_viewer_areas(g.viewer_id)
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
     warnings = get_active_warnings()
+    tsunami_warnings = get_active_tsunami_warnings()
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
         viewer_areas=viewer_areas,
         quakes=quakes,
         warnings=warnings,
+        tsunami_warnings=tsunami_warnings,
         last_updated=last_updated,
     )
 
@@ -152,6 +155,16 @@ def river():
     forecasts = get_flood_forecasts()
     last_updated = _get_last_updated()
     return _make_response_with_cookie("river.html", forecasts=forecasts, last_updated=last_updated)
+
+
+@app.route("/tsunami")
+def tsunami():
+    """津波警報・注意報ページ。"""
+    tsunami_warnings = get_active_tsunami_warnings()
+    last_updated = _get_last_updated()
+    return _make_response_with_cookie(
+        "tsunami.html", tsunami_warnings=tsunami_warnings, last_updated=last_updated
+    )
 
 
 @app.route("/environment")
