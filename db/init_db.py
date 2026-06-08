@@ -106,13 +106,14 @@ CREATE TABLE IF NOT EXISTS environment_info (
 
 -- 津波警報・注意報
 CREATE TABLE IF NOT EXISTS tsunami_warnings (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    area_code   TEXT NOT NULL,
-    area_name   TEXT,
-    category    TEXT NOT NULL DEFAULT '',
-    reported_at TEXT,
-    fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-    UNIQUE(area_code)
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    area_code     TEXT NOT NULL,
+    area_name     TEXT,
+    category      TEXT NOT NULL DEFAULT '',
+    telegram_type TEXT NOT NULL DEFAULT '',
+    reported_at   TEXT,
+    fetched_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(area_code, telegram_type)
 );
 
 -- 収集ログ
@@ -147,6 +148,11 @@ def init_db(db_path: str | None = None) -> None:
         columns = [row[1] for row in conn.execute("PRAGMA table_info(typhoons)").fetchall()]
         if "reported_at" not in columns:
             conn.execute("ALTER TABLE typhoons ADD COLUMN reported_at TEXT")
+            conn.commit()
+        # tsunami_warnings に telegram_type カラムを追加（既存DBのマイグレーション）
+        tw_cols = [row[1] for row in conn.execute("PRAGMA table_info(tsunami_warnings)").fetchall()]
+        if "telegram_type" not in tw_cols:
+            conn.execute("ALTER TABLE tsunami_warnings ADD COLUMN telegram_type TEXT NOT NULL DEFAULT ''")
             conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:

@@ -53,10 +53,11 @@ CATEGORY_MAP = {
 _NO_THREAT_CATEGORIES = {"None", "解除", "不明", ""}
 
 
-def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
-    """VTWW53 XMLを解析して津波警報情報をDBに保存する。保存件数を返す。
+def handle(root: etree._Element, reported_at: str, db_path=None, telegram_type: str = "VTWW53") -> int:
+    """津波警報 XML を解析して津波警報情報を DB に保存する。保存件数を返す。
 
-    VTWW53 電文を受信するたびに全件削除して再挿入する（完全上書き方式）。
+    telegram_type で指定された種別の全レコードを削除して再挿入する（完全上書き方式）。
+    異なる telegram_type（VTWW53 と VTSE41 等）のレコードは互いに上書きしない。
     """
     body = root.find("Body")
     if body is None:
@@ -68,8 +69,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     tsunami_el = body.find("Tsunami")
     if tsunami_el is None:
         # 解除電文など Tsunami 要素が存在しない場合は DB を全削除して終了
-        logger.info("Tsunami 要素なし（解除電文）: DB の津波警報を全削除します")
-        replace_all_tsunami_warnings([], db_path=db_path)
+        logger.info("Tsunami 要素なし（解除電文）: %s の津波警報を全削除します", telegram_type)
+        replace_all_tsunami_warnings([], telegram_type=telegram_type, db_path=db_path)
         return 0
 
     forecast_el = tsunami_el.find("Forecast")
@@ -105,7 +106,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         logger.info("津波情報収集: area=%s category=%s", area_name, category)
 
     # 全削除 + 一括挿入をatomicトランザクションで実行
-    replace_all_tsunami_warnings(warning_rows, db_path=db_path)
+    replace_all_tsunami_warnings(warning_rows, telegram_type=telegram_type, db_path=db_path)
     total = len(warning_rows)
     logger.info("津波警報保存: %d件", total)
     return total

@@ -23,13 +23,14 @@ HANDLERS = {
     "VFVO53": parse_volcano.handle,
     "VPFT50": parse_heatstroke.handle,
     "VPTW60": parse_typhoon.handle,
-    "VTWW53": parse_tsunami.handle,
-    # 遠地地震の津波警報・注意報・予報は VTSE41 として配信される
-    "VTSE41": parse_tsunami.handle,
+    "VTWW53": lambda root, reported_at, **kw: parse_tsunami.handle(root, reported_at, telegram_type="VTWW53", **kw),
+    # 遠地地震の津波警報・注意報・予報は VTSE41 として配信される（エリアコードは 010000 共通）
+    "VTSE41": lambda root, reported_at, **kw: parse_tsunami.handle(root, reported_at, telegram_type="VTSE41", **kw),
 }
 
 # 同一都道府県の最新1件のみ処理する電文種別（地域フィルタが必要なもの）
-_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VTSE41"}
+# VTSE41 はエリアコード 010000 が全エリア共通のため重複排除対象外とする
+_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53"}
 
 
 def _area_code_from_url(url: str) -> str:
