@@ -14,8 +14,15 @@
       <div class="card-body">
         {% set area_warnings = all_warnings | selectattr('pref_code', 'equalto', area.pref_code) | list if area.pref_code else [] %}
         {% if area_warnings %}
-          {% for w in area_warnings %}
-            <span class="badge{% if w.level %} badge-{{ w.level | lower }}{% endif %}">{{ w.warning_type }}{% if w.area_name %}（{{ w.area_name }}）{% endif %}</span>
+          {% for group in area_warnings | groupby('area_name') %}
+          <div class="area-warning-group">
+            <div class="area-group-label">{{ group.grouper }}</div>
+            <div class="area-group-badges">
+              {% for w in group.list %}
+                <span class="badge{% if w.level %} badge-{{ w.level | lower }}{% endif %}">{{ w.warning_type }}</span>
+              {% endfor %}
+            </div>
+          </div>
           {% endfor %}
         {% else %}
           <span class="badge badge-ok">発令なし</span>
