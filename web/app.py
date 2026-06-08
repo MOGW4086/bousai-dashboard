@@ -24,7 +24,7 @@ from db.models import (
     get_volcano_alerts,
     upsert_viewer_area,
 )
-from scheduler.area_master import PREF_MASTER, get_pref_code_from_area_code, get_pref_name_from_area_code
+from scheduler.area_master import PREF_MASTER, get_pref_code_from_area_code
 
 app = Flask(__name__)
 
@@ -92,8 +92,9 @@ def _get_last_updated() -> str | None:
 def _enrich_warnings_with_pref(warnings: list[dict]) -> None:
     """警報リストに都道府県名・都道府県コードを付与する（インプレース）。"""
     for w in warnings:
-        w["pref_name"] = get_pref_name_from_area_code(w.get("area_code"))
-        w["pref_code"] = get_pref_code_from_area_code(w.get("area_code"))
+        pref_code = get_pref_code_from_area_code(w.get("area_code"))
+        w["pref_code"] = pref_code
+        w["pref_name"] = PREF_MASTER.get(pref_code, "")
 
 
 # ─── ページルーティング ────────────────────────────────────────────────────────
