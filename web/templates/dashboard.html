@@ -12,7 +12,7 @@
     <div class="card">
       <div class="card-title">{{ area.name }}</div>
       <div class="card-body">
-        {% set area_warnings = warnings | selectattr('area_code', 'equalto', area.area_code) | list %}
+        {% set area_warnings = warnings | selectattr('pref_code', 'equalto', area.area_code) | list %}
         {% if area_warnings %}
           {% for w in area_warnings %}
             {% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.warning_type }}</span>{% else %}<span class="badge">{{ w.warning_type }}</span>{% endif %}

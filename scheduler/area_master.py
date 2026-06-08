@@ -103,3 +103,30 @@ def get_pref_name_from_area_code(area_code: str | None) -> str:
         if max_len == 6:
             break
     return PREF_MASTER[best_key] if max_len >= 2 else ""
+
+
+@cache
+def get_pref_code_from_area_code(area_code: str | None) -> str:
+    """一次細分区域コードから都道府県コード（pref_code）を返す。
+
+    ``get_pref_name_from_area_code`` と同じプレフィックスマッチロジックを使い、
+    名称ではなくキー（pref_code）を返す。
+    """
+    if not area_code or len(area_code) < 3:
+        return ""
+
+    best_key = ""
+    max_len = 0
+    for k in PREF_MASTER:
+        temp_len = 0
+        for c1, c2 in zip(k, area_code):
+            if c1 == c2:
+                temp_len += 1
+            else:
+                break
+        if temp_len > max_len:
+            max_len = temp_len
+            best_key = k
+        if max_len == 6:
+            break
+    return best_key if max_len >= 2 else ""
