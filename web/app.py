@@ -105,7 +105,6 @@ def dashboard():
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
     all_warnings = get_active_warnings()
     _enrich_warnings_with_pref(all_warnings)
-    g.all_warnings = all_warnings
     warnings = [w for w in all_warnings if w.get("level") == "special_warning"]
     tsunami_warnings = get_active_tsunami_warnings()
     last_updated = _get_last_updated()
@@ -114,6 +113,7 @@ def dashboard():
         viewer_areas=viewer_areas,
         quakes=quakes,
         warnings=warnings,
+        all_warnings=all_warnings,
         tsunami_warnings=tsunami_warnings,
         last_updated=last_updated,
     )

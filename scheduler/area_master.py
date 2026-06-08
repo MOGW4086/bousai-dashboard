@@ -104,14 +104,12 @@ def _find_pref_key(area_code: str | None) -> str:
     return best_key if max_len >= 2 else ""
 
 
-@cache
 def get_pref_name_from_area_code(area_code: str | None) -> str:
     """一次細分区域コードから都道府県名を返す。"""
     key = _find_pref_key(area_code)
     return PREF_MASTER[key] if key else ""
 
 
-@cache
 def get_pref_code_from_area_code(area_code: str | None) -> str:
     """一次細分区域コードから都道府県コード（pref_code）を返す。"""
     return _find_pref_key(area_code)
