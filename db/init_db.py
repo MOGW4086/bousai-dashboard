@@ -104,6 +104,17 @@ CREATE TABLE IF NOT EXISTS environment_info (
     UNIQUE(info_type, area_name, valid_from)
 );
 
+-- 津波警報・注意報
+CREATE TABLE IF NOT EXISTS tsunami_warnings (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    area_code   TEXT NOT NULL,
+    area_name   TEXT,
+    category    TEXT NOT NULL DEFAULT '',
+    reported_at TEXT,
+    fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(area_code)
+);
+
 -- 収集ログ
 CREATE TABLE IF NOT EXISTS collection_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

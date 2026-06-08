@@ -27,6 +27,7 @@
       <li><a href="{{ url_for('quake') }}" {% if request.path == '/quake' %}class="active"{% endif %}>地震</a></li>
       <li><a href="{{ url_for('warning') }}" {% if request.path == '/warning' %}class="active"{% endif %}>警報</a></li>
       <li><a href="{{ url_for('typhoon') }}" {% if request.path == '/typhoon' %}class="active"{% endif %}>台風</a></li>
+      <li><a href="{{ url_for('tsunami') }}" {% if request.path == '/tsunami' %}class="active"{% endif %}>津波</a></li>
       <li><a href="{{ url_for('heatstroke') }}" {% if request.path == '/heatstroke' %}class="active"{% endif %}>熱中症</a></li>
       <li><a href="{{ url_for('volcano') }}" {% if request.path == '/volcano' %}class="active"{% endif %}>火山</a></li>
       <li><a href="{{ url_for('river') }}" {% if request.path == '/river' %}class="active"{% endif %}>河川</a></li>

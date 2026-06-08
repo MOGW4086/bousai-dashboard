@@ -70,6 +70,41 @@
   {% endif %}
 </section>
 
+<!-- 津波警報・注意報 -->
+{% if tsunami_warnings %}
+<section class="section">
+  <h3>津波警報・注意報</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>地域名</th>
+        <th>種別</th>
+        <th>発表日時</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in tsunami_warnings %}
+      <tr>
+        <td>{{ w.area_name or w.area_code }}</td>
+        <td>
+          {% if w.category == '大津波警報' %}
+            <span class="badge badge-special_warning">{{ w.category }}</span>
+          {% elif w.category == '津波警報' %}
+            <span class="badge badge-warning">{{ w.category }}</span>
+          {% elif w.category == '津波注意報' %}
+            <span class="badge badge-advisory">{{ w.category }}</span>
+          {% else %}
+            <span class="badge">{{ w.category or '-' }}</span>
+          {% endif %}
+        </td>
+        <td>{{ w.reported_at or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
 <!-- 現在発令中の警報 -->
 <section class="section">
   <h3>現在発令中の警報・注意報</h3>

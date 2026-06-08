@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}津波警報・注意報 - 防災ダッシュボード{% endblock %}
+{% block content %}
+<h2>津波警報・注意報</h2>
+{% if tsunami_warnings %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>地域コード</th>
+      <th>地域名</th>
+      <th>種別</th>
+      <th>発表日時</th>
+      <th>取得日時</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for w in tsunami_warnings %}
+    <tr>
+      <td>{{ w.area_code }}</td>
+      <td>{{ w.area_name or '-' }}</td>
+      <td>
+        {% if w.category == '大津波警報' %}
+          <span class="badge badge-special_warning">{{ w.category }}</span>
+        {% elif w.category == '津波警報' %}
+          <span class="badge badge-warning">{{ w.category }}</span>
+        {% elif w.category == '津波注意報' %}
+          <span class="badge badge-advisory">{{ w.category }}</span>
+        {% else %}
+          <span class="badge">{{ w.category or '-' }}</span>
+        {% endif %}
+      </td>
+      <td>{{ w.reported_at or '-' }}</td>
+      <td>{{ w.fetched_at or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">現在、津波警報・注意報の発令はありません。</p>
+{% endif %}
+{% endblock %}
