@@ -103,9 +103,11 @@ def dashboard():
     """ダッシュボードトップ。登録地域のサマリー + 最新地震 + 現在警報 + 津波情報。"""
     viewer_areas = get_viewer_areas(g.viewer_id)
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
-    warnings = [w for w in get_active_warnings() if w.get("level") == "special_warning"]
+    all_warnings = get_active_warnings()
+    _enrich_warnings_with_pref(all_warnings)
+    g.all_warnings = all_warnings
+    warnings = [w for w in all_warnings if w.get("level") == "special_warning"]
     tsunami_warnings = get_active_tsunami_warnings()
-    _enrich_warnings_with_pref(warnings)
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
