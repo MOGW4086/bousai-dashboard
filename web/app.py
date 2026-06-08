@@ -24,7 +24,7 @@ from db.models import (
     get_volcano_alerts,
     upsert_viewer_area,
 )
-from scheduler.area_master import PREF_MASTER, get_pref_name_from_area_code
+from scheduler.area_master import PREF_MASTER, get_pref_code_from_area_code
 
 app = Flask(__name__)
 
@@ -90,9 +90,11 @@ def _get_last_updated() -> str | None:
 
 
 def _enrich_warnings_with_pref(warnings: list[dict]) -> None:
-    """警報リストに都道府県名を付与する（インプレース）。"""
+    """警報リストに都道府県名・都道府県コードを付与する（インプレース）。"""
     for w in warnings:
-        w["pref_name"] = get_pref_name_from_area_code(w.get("area_code"))
+        pref_code = get_pref_code_from_area_code(w.get("area_code"))
+        w["pref_code"] = pref_code
+        w["pref_name"] = PREF_MASTER.get(pref_code, "")
 
 
 # ─── ページルーティング ────────────────────────────────────────────────────────
@@ -102,15 +104,17 @@ def dashboard():
     """ダッシュボードトップ。登録地域のサマリー + 最新地震 + 現在警報 + 津波情報。"""
     viewer_areas = get_viewer_areas(g.viewer_id)
     quakes = get_recent_quakes(limit=10, min_scale=30)  # 震度3以上
-    warnings = get_active_warnings()
+    all_warnings = get_active_warnings()
+    _enrich_warnings_with_pref(all_warnings)
+    warnings = [w for w in all_warnings if (w.get("level") or "").lower() == "special_warning"]
     tsunami_warnings = get_active_tsunami_warnings()
-    _enrich_warnings_with_pref(warnings)
     last_updated = _get_last_updated()
     return _make_response_with_cookie(
         "dashboard.html",
         viewer_areas=viewer_areas,
         quakes=quakes,
         warnings=warnings,
+        all_warnings=all_warnings,
         tsunami_warnings=tsunami_warnings,
         last_updated=last_updated,
     )

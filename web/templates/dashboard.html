@@ -12,7 +12,7 @@
     <div class="card">
       <div class="card-title">{{ area.name }}</div>
       <div class="card-body">
-        {% set area_warnings = warnings | selectattr('area_code', 'equalto', area.area_code) | list %}
+        {% set area_warnings = all_warnings | selectattr('pref_code', 'equalto', area.pref_code) | list if area.pref_code else [] %}
         {% if area_warnings %}
           {% for w in area_warnings %}
             {% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.warning_type }}</span>{% else %}<span class="badge">{{ w.warning_type }}</span>{% endif %}
@@ -107,7 +107,7 @@
 
 <!-- 現在発令中の警報 -->
 <section class="section">
-  <h3>現在発令中の警報・注意報</h3>
+  <h3>現在発令中の特別警報</h3>
   {% if warnings %}
   <table class="table">
     <thead>
@@ -130,7 +130,7 @@
     </tbody>
   </table>
   {% else %}
-  <p class="no-data">現在、警報・注意報の発令はありません。</p>
+  <p class="no-data">現在、特別警報の発令はありません。</p>
   {% endif %}
 </section>
 {% endblock %}
