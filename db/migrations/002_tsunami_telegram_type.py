@@ -40,6 +40,14 @@ def run(db_path=None):
             DROP TABLE tsunami_warnings;
             ALTER TABLE tsunami_warnings_new RENAME TO tsunami_warnings;
         """)
+        # 移行前データは telegram_type='' で不完全なため削除し、次回収集で再取得させる
+        conn.execute("DELETE FROM tsunami_warnings WHERE telegram_type = ''")
+        # VTSE41 の処理済みフラグをリセット（telegram_type付きで再収集させる）
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='xml_feed_state'"
+        ).fetchone()
+        if exists:
+            conn.execute("DELETE FROM xml_feed_state WHERE entry_id LIKE '%VTSE41%'")
         conn.execute("INSERT INTO applied_migrations (name) VALUES (?)", (MIGRATION_NAME,))
     print(f"[{MIGRATION_NAME}] 適用完了: tsunami_warnings に telegram_type カラム追加・UNIQUE制約変更")
 
