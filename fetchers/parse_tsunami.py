@@ -90,12 +90,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 
         # カテゴリは Category/Kind/Name を優先し、Kind/Name にフォールバック
         # TODO: 実電文のパスが異なる場合はここを調整
-        category_en = (
-            find_text(item, "Category/Kind/Name")
-            or find_text(item, "Category/Name")
-            or find_text(item, "Kind/Name")
-            or ""
-        )
+        category_en = find_text(item, "Category/Kind/Name", "Category/Name", "Kind/Name") or ""
         category = CATEGORY_MAP.get(category_en, category_en)
 
         if not area_code:

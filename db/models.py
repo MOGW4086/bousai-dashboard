@@ -411,27 +411,6 @@ def replace_all_tsunami_warnings(
             )
 
 
-def upsert_tsunami_warning(
-    area_code: str,
-    area_name: str | None,
-    category: str | None,
-    reported_at: str | None = None,
-    db_path: str | None = None,
-) -> None:
-    """津波警報・注意報をupsertする。"""
-    with get_conn(db_path) as conn:
-        conn.execute(
-            """
-            INSERT INTO tsunami_warnings (area_code, area_name, category, reported_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(area_code)
-            DO UPDATE SET area_name=excluded.area_name, category=excluded.category,
-                          reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
-            """,
-            (area_code, area_name, category, reported_at),
-        )
-
-
 def get_active_tsunami_warnings(db_path: str | None = None) -> list[dict]:
     """現在の津波警報・注意報一覧を返す。"""
     with get_conn(db_path) as conn:
