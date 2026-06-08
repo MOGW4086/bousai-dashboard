@@ -24,10 +24,12 @@ HANDLERS = {
     "VPFT50": parse_heatstroke.handle,
     "VPTW60": parse_typhoon.handle,
     "VTWW53": parse_tsunami.handle,
+    # 遠地地震の津波警報・注意報・予報は VTSE41 として配信される
+    "VTSE41": parse_tsunami.handle,
 }
 
 # 同一都道府県の最新1件のみ処理する電文種別（地域フィルタが必要なもの）
-_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53"}
+_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VTSE41"}
 
 
 def _area_code_from_url(url: str) -> str:
