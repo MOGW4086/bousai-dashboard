@@ -353,6 +353,32 @@ def delete_all_tsunami_warnings(db_path: str | None = None) -> None:
         conn.execute("DELETE FROM tsunami_warnings")
 
 
+def replace_all_tsunami_warnings(
+    rows: list[tuple[str, str | None, str | None, str | None]],
+    db_path: str | None = None,
+) -> None:
+    """全削除 + 一括挿入をatomicトランザクションで実行する。
+
+    Args:
+        rows: (area_code, area_name, category, reported_at) のタプルリスト。
+              空リストを渡すと全件削除のみ（解除電文用）。
+        db_path: DBパス。Noneの場合はConfig.DB_PATHを使用。
+    """
+    with get_conn(db_path) as conn:
+        conn.execute("DELETE FROM tsunami_warnings")
+        if rows:
+            conn.executemany(
+                """
+                INSERT INTO tsunami_warnings (area_code, area_name, category, reported_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(area_code)
+                DO UPDATE SET area_name=excluded.area_name, category=excluded.category,
+                              reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
+                """,
+                rows,
+            )
+
+
 def upsert_tsunami_warning(
     area_code: str,
     area_name: str | None,

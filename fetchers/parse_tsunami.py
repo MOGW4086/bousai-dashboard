@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import delete_all_tsunami_warnings, upsert_tsunami_warning
+from db.models import replace_all_tsunami_warnings
 from fetchers.xml_utils import find_text
 
 logger = logging.getLogger(__name__)
@@ -67,17 +67,18 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     # TODO: 実電文のタグ構造が異なる場合はここを調整
     tsunami_el = body.find("Tsunami")
     if tsunami_el is None:
-        logger.info("Tsunami 要素なし（解除済みまたは予報なし）")
+        # 解除電文など Tsunami 要素が存在しない場合は DB を全削除して終了
+        logger.info("Tsunami 要素なし（解除電文）: DB の津波警報を全削除します")
+        replace_all_tsunami_warnings([], db_path=db_path)
         return 0
-
-    # 有効なTsunamiデータが存在することを確認してから削除
-    delete_all_tsunami_warnings(db_path=db_path)
-    total = 0
 
     forecast_el = tsunami_el.find("Forecast")
     if forecast_el is None:
         # Forecast タグなしで直接 Item が並ぶ構造にも対応
         forecast_el = tsunami_el
+
+    # 有効な警報レコードを収集してからatomicに一括保存する
+    warning_rows: list[tuple[str, str | None, str | None, str | None]] = []
 
     for item in forecast_el.findall("Item"):
         area_el = item.find("Area")
@@ -105,15 +106,11 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             logger.debug("解除・脅威なしのためスキップ: area=%s category=%s", area_name, category_en)
             continue
 
-        upsert_tsunami_warning(
-            area_code=area_code,
-            area_name=area_name,
-            category=category,
-            reported_at=reported_at,
-            db_path=db_path,
-        )
-        logger.info("津波情報保存: area=%s category=%s", area_name, category)
-        total += 1
+        warning_rows.append((area_code, area_name, category, reported_at))
+        logger.info("津波情報収集: area=%s category=%s", area_name, category)
 
+    # 全削除 + 一括挿入をatomicトランザクションで実行
+    replace_all_tsunami_warnings(warning_rows, db_path=db_path)
+    total = len(warning_rows)
     logger.info("津波警報保存: %d件", total)
     return total
