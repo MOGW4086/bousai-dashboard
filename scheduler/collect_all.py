@@ -2,13 +2,19 @@
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
 from db.init_db import init_db
-from db.models import insert_collection_log
+from db.models import (
+    cleanup_xml_feed_state,
+    delete_defunct_typhoons,
+    delete_past_heatstroke_alerts,
+    insert_collection_log,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +35,15 @@ def run_fetcher(source: str, db_path: str) -> tuple[str, int, str | None]:
     except Exception as e:
         logger.error("フェッチャーエラー [%s]: %s", source, e)
         return "error", 0, str(e)
+
+
+def _run_cleanup_task(task_func: Callable[[str | None], int], task_name: str, success_log_msg: str, db_path: str | None) -> None:
+    """クリーンアップタスクを実行し、例外が発生してもスキップして警告ログを出す。"""
+    try:
+        deleted_count = task_func(db_path)
+        logger.info(success_log_msg, deleted_count)
+    except Exception as e:
+        logger.warning("%s クリーンアップ失敗（スキップ）: %s", task_name, e, exc_info=True)
 
 
 def collect(sources: list[str], db_path: str | None = None) -> None:
@@ -53,6 +68,25 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
             logger.error("[%s] 失敗: %s", source, msg)
 
     logger.info("データ収集完了")
+
+    _run_cleanup_task(
+        cleanup_xml_feed_state,
+        "xml_feed_state",
+        "xml_feed_state クリーンアップ: %d件削除（14日以上前）",
+        path
+    )
+    _run_cleanup_task(
+        delete_past_heatstroke_alerts,
+        "heatstroke_alerts",
+        "heatstroke_alerts クリーンアップ: %d件削除（過去日付）",
+        path
+    )
+    _run_cleanup_task(
+        delete_defunct_typhoons,
+        "typhoons(defunct)",
+        "消滅台風クリーンアップ: %d件削除",
+        path
+    )
 
 
 def main() -> None:

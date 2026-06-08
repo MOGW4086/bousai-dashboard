@@ -1,4 +1,5 @@
 """都道府県コード・名称の対応表（気象庁コード基準）。"""
+from functools import cache
 
 # 気象庁都道府県コードと名称のマッピング
 # キー: 気象庁警報API（https://www.jma.go.jp/bosai/warning/data/warning/{pref_code}.json）で使用するコード（6桁）
@@ -79,3 +80,26 @@ PREF_CODES: list[str] = list(PREF_MASTER.keys())
 def get_pref_name(pref_code: str) -> str:
     """都道府県コードから名称を返す。未知のコードは空文字を返す。"""
     return PREF_MASTER.get(pref_code, "")
+
+
+@cache
+def get_pref_name_from_area_code(area_code: str | None) -> str:
+    """一次細分区域コードから都道府県名を返す。"""
+    if not area_code or len(area_code) < 3:
+        return ""
+
+    best_key = ""
+    max_len = 0
+    for k in PREF_MASTER:
+        temp_len = 0
+        for c1, c2 in zip(k, area_code):
+            if c1 == c2:
+                temp_len += 1
+            else:
+                break
+        if temp_len > max_len:
+            max_len = temp_len
+            best_key = k
+        if max_len == 6:
+            break
+    return PREF_MASTER[best_key] if max_len >= 2 else ""
