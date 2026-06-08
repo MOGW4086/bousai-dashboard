@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS tsunami_warnings (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     area_code   TEXT NOT NULL,
     area_name   TEXT,
-    category    TEXT,
+    category    TEXT NOT NULL DEFAULT '',
     reported_at TEXT,
     fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     UNIQUE(area_code)

@@ -58,9 +58,6 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 
     VTWW53 電文を受信するたびに全件削除して再挿入する（完全上書き方式）。
     """
-    total = 0
-    delete_all_tsunami_warnings(db_path=db_path)
-
     body = root.find("Body")
     if body is None:
         logger.warning("Body が見つかりません")
@@ -72,6 +69,10 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     if tsunami_el is None:
         logger.info("Tsunami 要素なし（解除済みまたは予報なし）")
         return 0
+
+    # 有効なTsunamiデータが存在することを確認してから削除
+    delete_all_tsunami_warnings(db_path=db_path)
+    total = 0
 
     forecast_el = tsunami_el.find("Forecast")
     if forecast_el is None:
