@@ -95,6 +95,8 @@ def _enrich_warnings_with_pref(warnings: list[dict]) -> None:
         pref_code = get_pref_code_from_area_code(w.get("area_code"))
         w["pref_code"] = pref_code
         w["pref_name"] = PREF_MASTER.get(pref_code, "")
+        if not w.get("area_name"):
+            w["area_name"] = "全域"
 
 
 # ─── ページルーティング ────────────────────────────────────────────────────────

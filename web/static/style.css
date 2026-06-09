@@ -223,6 +223,29 @@ h3 {
   gap: 0.3rem;
 }
 
+/* ─── 警報グループ表示 ─────────────────────────────────────── */
+.area-warning-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.area-group-label {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #555;
+  white-space: nowrap;
+  min-width: 5em;
+}
+
+.area-group-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
 /* ─── フォーム ─────────────────────────────────────────────── */
 .form-inline {
   display: flex;
