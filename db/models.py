@@ -86,6 +86,8 @@ def insert_quake(
     max_scale: int | None,
     tsunami: str | None,
     raw_json: dict | None,
+    latitude: float | None = None,
+    longitude: float | None = None,
     db_path: str | None = None,
 ) -> bool:
     """地震情報を挿入する。重複は無視。挿入できた場合True。"""
@@ -93,8 +95,8 @@ def insert_quake(
         cur = conn.execute(
             """
             INSERT OR IGNORE INTO quakes
-            (event_id, occurred_at, hypocenter, magnitude, max_scale, tsunami, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (event_id, occurred_at, hypocenter, magnitude, max_scale, tsunami, raw_json, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event_id,
@@ -104,6 +106,8 @@ def insert_quake(
                 max_scale,
                 tsunami,
                 json.dumps(raw_json, ensure_ascii=False) if raw_json else None,
+                latitude,
+                longitude,
             ),
         )
         return cur.rowcount > 0
