@@ -38,7 +38,10 @@ def _parse_coordinate(text: str | None) -> tuple[float | None, float | None]:
     if not m:
         return None, None
     try:
-        return float(m.group(1)), float(m.group(2))
+        lat, lon = float(m.group(1)), float(m.group(2))
+        if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+            return lat, lon
+        return None, None
     except ValueError:
         return None, None
 

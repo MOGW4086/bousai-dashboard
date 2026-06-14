@@ -160,8 +160,9 @@ def init_db(db_path: str | None = None) -> None:
         q_cols = [row[1] for row in conn.execute("PRAGMA table_info(quakes)").fetchall()]
         if "latitude" not in q_cols:
             conn.execute("ALTER TABLE quakes ADD COLUMN latitude REAL")
+        if "longitude" not in q_cols:
             conn.execute("ALTER TABLE quakes ADD COLUMN longitude REAL")
-            conn.commit()
+        conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()
