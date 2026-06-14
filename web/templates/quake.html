@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}地震情報 - 防災ダッシュボード{% endblock %}
+{% set intensity_label = {10: '1', 20: '2', 30: '3', 40: '4', 50: '5弱', 55: '5強', 60: '6弱', 65: '6強', 70: '7'} %}
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <h2>地震情報</h2>
@@ -58,7 +59,7 @@ quakes.forEach(q => {
       <td>{{ q.hypocenter or '-' }}</td>
       <td>
         {% if q.max_scale %}
-          <span class="scale-badge scale-{{ q.max_scale }}">震度{{ q.max_scale // 10 }}</span>
+          <span class="scale-badge scale-{{ q.max_scale }}">震度{{ intensity_label.get(q.max_scale, q.max_scale // 10) }}</span>
         {% else %}-{% endif %}
       </td>
       <td>{{ 'M%.1f' % q.magnitude if q.magnitude else '-' }}</td>
