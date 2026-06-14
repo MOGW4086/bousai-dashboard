@@ -1,5 +1,6 @@
 """VXSE53 震源・震度情報 パーサー。"""
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -26,6 +27,22 @@ INTENSITY_MAP = {
 MIN_SCALE = 55  # 5強以上のみ保存
 
 
+def _parse_coordinate(text: str | None) -> tuple[float | None, float | None]:
+    """ISO 6709 形式の座標文字列から (latitude, longitude) を返す。
+
+    例: +35.679+140.090-60000/ → lat=35.679, lon=140.090
+    """
+    if not text:
+        return None, None
+    m = re.match(r'([+-]\d+\.?\d*)([+-]\d+\.?\d*)', text.strip())
+    if not m:
+        return None, None
+    try:
+        return float(m.group(1)), float(m.group(2))
+    except ValueError:
+        return None, None
+
+
 def _parse_scale(text: str | None) -> int | None:
     if text is None:
         return None
@@ -40,6 +57,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     magnitude_str = find_text(root, "Body/Earthquake/Magnitude")
     max_int_str = find_text(root, "Body/Intensity/Observation/MaxInt")
     tsunami_text = find_text(root, "Body/Comments/ForecastComment/Text")
+    coord_text = find_text(root, "Body/Earthquake/Hypocenter/Area/Coordinate")
+    latitude, longitude = _parse_coordinate(coord_text)
 
     magnitude = None
     if magnitude_str:
@@ -71,6 +90,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         max_scale=max_scale,
         tsunami=tsunami,
         raw_json=None,
+        latitude=latitude,
+        longitude=longitude,
         db_path=db_path,
     )
     if saved:

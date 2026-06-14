@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS quakes (
     max_scale   INTEGER,
     tsunami     TEXT,
     raw_json    TEXT,
+    latitude    REAL,
+    longitude   REAL,
     fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 
@@ -153,6 +155,12 @@ def init_db(db_path: str | None = None) -> None:
         tw_cols = [row[1] for row in conn.execute("PRAGMA table_info(tsunami_warnings)").fetchall()]
         if "telegram_type" not in tw_cols:
             conn.execute("ALTER TABLE tsunami_warnings ADD COLUMN telegram_type TEXT NOT NULL DEFAULT ''")
+            conn.commit()
+        # quakes に latitude/longitude カラムを追加（既存DBのマイグレーション）
+        q_cols = [row[1] for row in conn.execute("PRAGMA table_info(quakes)").fetchall()]
+        if "latitude" not in q_cols:
+            conn.execute("ALTER TABLE quakes ADD COLUMN latitude REAL")
+            conn.execute("ALTER TABLE quakes ADD COLUMN longitude REAL")
             conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:

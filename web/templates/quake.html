@@ -2,6 +2,34 @@
 {% block title %}地震情報 - 防災ダッシュボード{% endblock %}
 {% block content %}
 <h2>地震情報</h2>
+
+<div id="quake-map" style="height:400px; margin-bottom:1.5rem;"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const quakes = {{ quakes | tojson }};
+const map = L.map('quake-map').setView([36, 136], 5);
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>',
+    maxZoom: 18
+}).addTo(map);
+
+quakes.forEach(q => {
+    if (q.latitude == null || q.longitude == null) return;
+    const scale = q.max_scale || 0;
+    const color = scale >= 60 ? '#cc0000' : scale >= 50 ? '#ff6600' : scale >= 40 ? '#ffcc00' : '#0066cc';
+    const radius = Math.max(5, (q.magnitude || 3) * 3);
+    L.circleMarker([q.latitude, q.longitude], {
+        radius, color, fillColor: color, fillOpacity: 0.6, weight: 1
+    }).bindPopup(
+        `<b>${q.hypocenter || '不明'}</b><br>` +
+        `${q.occurred_at || ''}<br>` +
+        `震度: ${q.max_scale != null ? Math.floor(q.max_scale/10) : '-'}` +
+        `  M: ${q.magnitude != null ? q.magnitude.toFixed(1) : '-'}`
+    ).addTo(map);
+});
+</script>
+
 {% if quakes %}
 <table class="table">
   <thead>
