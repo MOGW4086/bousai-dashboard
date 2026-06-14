@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}地震情報 - 防災ダッシュボード{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <h2>地震情報</h2>
 
 <div id="quake-map" style="height:400px; margin-bottom:1.5rem;"></div>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const quakes = {{ quakes | tojson }};
