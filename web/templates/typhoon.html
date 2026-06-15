@@ -52,7 +52,7 @@ typhoons.forEach((t, idx) => {
         marker.bindPopup(
             `<b>${escapeHtml(t.name || t.typhoon_id)}</b><br>` +
             `${kindLabel}<br>` +
-            `緯度: ${p.lat.toFixed(1)}° 経度: ${p.lon.toFixed(1)}°` +
+            `${p.lat >= 0 ? '北緯' : '南緯'}${Math.abs(p.lat).toFixed(1)}° ${p.lon >= 0 ? '東経' : '西経'}${Math.abs(p.lon).toFixed(1)}°` +
             (p.forecast_radius ? `<br>予報円: ${p.forecast_radius} km` : '')
         );
         marker.addTo(map);
