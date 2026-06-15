@@ -156,9 +156,9 @@ def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
     """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
     pref_code の先頭2桁 + 残りの末尾ゼロを除いたプレフィクスで LIKE 検索する。
     例: "016000" → "016%", "014030" → "01403%", "014100" → "0141%"
-    空の pref_code は全件削除を防ぐためスキップする。
+    空・短い・非数字の pref_code は広範囲削除を防ぐためスキップする。
     """
-    if not pref_code:
+    if not pref_code or len(pref_code) != 6 or not pref_code.isdigit():
         return
     prefix = pref_code[:2] + pref_code[2:].rstrip("0")
     with get_conn(db_path) as conn:
@@ -467,6 +467,17 @@ def mark_processed(entry_id: str, db_path=None) -> None:
             "INSERT OR IGNORE INTO xml_feed_state (entry_id) VALUES (?)",
             (entry_id,),
         )
+
+
+def delete_old_minor_quakes(db_path: str | None = None, days: int = 30, max_scale: int = 20) -> int:
+    """30日以上前の震度2以下の地震を削除してDB肥大化を防ぐ。削除件数を返す。"""
+    threshold = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    with get_conn(db_path) as conn:
+        cur = conn.execute(
+            "DELETE FROM quakes WHERE fetched_at < ? AND (max_scale IS NULL OR max_scale <= ?)",
+            (threshold, max_scale),
+        )
+        return cur.rowcount
 
 
 def cleanup_xml_feed_state(db_path: str | None = None, threshold: str | None = None) -> int:
