@@ -152,9 +152,9 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
                     unit = radius_el.get("unit", "km")
                     try:
                         r_km = int(radius_el.text.strip())
-                        if unit in ("nm", "海里"):
+                        if unit.lower() in ("nm", "海里"):
                             r_km = round(r_km * 1.852)
-                        if cond == "高確度":
+                        if cond in ("70%", "高確度"):
                             entry["forecast_radius_70"] = r_km
                         else:
                             entry.setdefault("forecast_radius", r_km)
