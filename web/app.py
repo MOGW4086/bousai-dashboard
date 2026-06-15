@@ -1,4 +1,5 @@
 """防災ダッシュボード Flaskアプリケーション。"""
+import json
 import subprocess
 import sys
 import uuid
@@ -143,6 +144,14 @@ def warning():
 def typhoon():
     """台風情報ページ。"""
     typhoons = get_active_typhoons()
+    for t in typhoons:
+        raw_track = t.pop("track_json", None)
+        t.pop("raw_json", None)
+        try:
+            parsed = json.loads(raw_track) if raw_track else []
+            t["track"] = parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, TypeError):
+            t["track"] = []
     last_updated = _get_last_updated()
     return _make_response_with_cookie("typhoon.html", typhoons=typhoons, last_updated=last_updated)
 

@@ -1,5 +1,6 @@
 """VPTW60 台風解析・予報情報 パーサー。"""
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -17,16 +18,13 @@ def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
     if _depth > 50:
         return {"_truncated": True}
     result: dict = {}
-    # テキストノード
     if el.text and el.text.strip():
         result["_text"] = el.text.strip()
-    # 属性
     if el.attrib:
         result["_attrib"] = dict(el.attrib)
-    # 子要素
     for child in el:
         tag = child.tag
-        if not isinstance(tag, str):  # コメントノード・処理命令をスキップ
+        if not isinstance(tag, str):
             continue
         child_dict = _element_to_dict(child, _depth + 1)
         if tag in result:
@@ -39,6 +37,134 @@ def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
     return result
 
 
+def _dms_digits_to_decimal(digits: str, deg_len: int) -> float | None:
+    """JMA ISO 6709 の純数字 DDMM / DDMMSS 形式を10進度に変換する。
+    deg_len: 度部分の桁数（緯度=2, 経度=3）
+    """
+    n = len(digits)
+    if n == deg_len:
+        return float(digits)
+    if n == deg_len + 2:
+        return int(digits[:deg_len]) + int(digits[deg_len:]) / 60
+    if n == deg_len + 4:
+        return int(digits[:deg_len]) + int(digits[deg_len:deg_len + 2]) / 60 + int(digits[deg_len + 2:]) / 3600
+    return None
+
+
+def _parse_coordinate(text: str) -> tuple[float | None, float | None]:
+    """ISO 6709 形式の座標文字列から (latitude, longitude) を返す。
+    JMA VPTW60 で使用される形式:
+      +DDMM+DDDMM/       → 度分（JMA標準: +2510+13020/）
+      +DDMMSS+DDDMMSS/   → 度分秒（+353612+1394530/）
+      +DD.D+DDD.D/        → 10進度
+      +DDdMMm+DDDdMMm/   → 記号付き度分
+    """
+    if not text:
+        return None, None
+    text = text.strip().rstrip("/")
+
+    # 10進度形式（小数点あり）: +DD.D+DDD.D
+    if "." in text:
+        m = re.match(r"^([+-]\d+\.\d*)([+-]\d+\.\d*)$", text)
+        if m:
+            try:
+                return float(m.group(1)), float(m.group(2))
+            except ValueError:
+                pass
+        return None, None
+
+    # 記号付き度分秒形式: +DDdMMm[SSs]+DDDdMMm[SSs]
+    m = re.match(r"^([+-])(\d+)d(\d+)m(?:(\d+)s)?([+-])(\d+)d(\d+)m(?:(\d+)s)?$", text)
+    if m:
+        lat_sign = -1 if m.group(1) == "-" else 1
+        lat = lat_sign * (int(m.group(2)) + int(m.group(3)) / 60 + int(m.group(4) or 0) / 3600)
+        lon_sign = -1 if m.group(5) == "-" else 1
+        lon = lon_sign * (int(m.group(6)) + int(m.group(7)) / 60 + int(m.group(8) or 0) / 3600)
+        return lat, lon
+
+    # 純数字形式（JMA VPTW60 標準）: ±DDMM±DDDMM または ±DDMMSS±DDDMMSS
+    m = re.match(r"^([+-])(\d{2,6})([+-])(\d{3,7})$", text)
+    if m:
+        lat_sign = -1 if m.group(1) == "-" else 1
+        lon_sign = -1 if m.group(3) == "-" else 1
+        lat = _dms_digits_to_decimal(m.group(2), 2)
+        lon = _dms_digits_to_decimal(m.group(4), 3)
+        if lat is not None and lon is not None:
+            return lat_sign * lat, lon_sign * lon
+
+    return None, None
+
+
+def _build_kind_map(item: etree._Element) -> dict[str, etree._Element]:
+    """Item 要素の Kind を Property/Type をキーにした辞書にまとめる。"""
+    kind_map: dict[str, etree._Element] = {}
+    for kind in item.findall("Kind"):
+        type_text = find_text(kind, "Property/Type")
+        if type_text:
+            kind_map[type_text] = kind
+    return kind_map
+
+
+def _extract_position(kind_map: dict[str, etree._Element]) -> tuple[float | None, float | None]:
+    """kind_map から現在位置の (latitude, longitude) を返す。
+    "位置（推定）" 等の派生種別にも対応するため部分一致で検索する。
+    """
+    for key, kind in kind_map.items():
+        if "位置" in key:
+            coord_text = find_text(kind, "Property/CenterPart/Coordinate")
+            if coord_text:
+                return _parse_coordinate(coord_text)
+    return None, None
+
+
+def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
+    """MeteorologicalInfos から全ての位置情報（実況・予報）を時系列順に抽出する。"""
+    track = []
+    for info in meteorological_infos.findall("MeteorologicalInfo"):
+        dt_el = info.find("DateTime")
+        if dt_el is None:
+            continue
+        dt_type = dt_el.get("type", "")
+        dt_text = dt_el.text.strip() if dt_el.text else None
+
+        item = info.find("Item")
+        if item is None:
+            continue
+
+        for kind in item.findall("Kind"):
+            type_text = find_text(kind, "Property/Type")
+            if not type_text or "位置" not in type_text:
+                continue
+            coord_text = find_text(kind, "Property/CenterPart/Coordinate")
+            if not coord_text:
+                continue
+            lat, lon = _parse_coordinate(coord_text)
+            if lat is None or lon is None:
+                continue
+            entry: dict = {"kind": dt_type, "at": dt_text, "lat": lat, "lon": lon}
+            # 予報円半径（Category/Type="予報円" に絞って取得。JMA 単位は "海里" または "nm"）
+            for category in kind.findall("Property/ForecastPart/Category"):
+                type_el = category.find("Type")
+                if type_el is None or "予報円" not in (type_el.text or ""):
+                    continue
+                for radius_el in category.findall(".//Radius"):
+                    cond = radius_el.get("condition", "")
+                    unit = radius_el.get("unit", "km")
+                    try:
+                        r_km = int(radius_el.text.strip())
+                        if unit.lower() in ("nm", "海里"):
+                            r_km = round(r_km * 1.852)
+                        if cond in ("70%", "高確度"):
+                            entry["forecast_radius_70"] = r_km
+                        else:
+                            entry.setdefault("forecast_radius", r_km)
+                    except (ValueError, AttributeError):
+                        pass
+            track.append(entry)
+            break
+    return track
+
+
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     """VPTW60 XMLを解析して台風情報をDBに保存する。保存件数を返す。"""
     total = 0
@@ -49,31 +175,27 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         logger.warning("MeteorologicalInfos が見つかりません")
         return 0
 
+    # VPTW60 は1電文1台風のため、MeteorologicalInfos 全体のトラックを唯一の台風に紐付ける。
+    # 将来的に複数台風が1電文に含まれる場合は予報エントリへの typhoon_id 付与が必要。
+    track = _extract_track(meteorological_infos)
+
     for info in meteorological_infos.findall("MeteorologicalInfo"):
-        # <DateTime type="実況"> のみ処理
         dt_el = info.find("DateTime")
         if dt_el is None:
             continue
-        dt_type = dt_el.get("type", "")
-        if dt_type != "実況":
+        if dt_el.get("type", "") != "実況":
             continue
 
         item = info.find("Item")
         if item is None:
             continue
 
-        # Kind 要素を Type ごとに整理
-        kind_map: dict[str, etree._Element] = {}
-        for kind in item.findall("Kind"):
-            type_text = find_text(kind, "Property/Type")
-            if type_text:
-                kind_map[type_text] = kind
+        kind_map = _build_kind_map(item)
 
-        # --- typhoon_id: <Number> ---
+        # typhoon_id
         name_part = None
         if "呼称" in kind_map:
             name_part = kind_map["呼称"].find("Property/TyphoonNamePart")
-
         if name_part is None:
             logger.debug("TyphoonNamePart が見つからないためスキップ")
             continue
@@ -82,14 +204,12 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         if not typhoon_id:
             logger.debug("<Number> が取得できないためスキップ")
             continue
-
-        # 同一電文内の重複 typhoon_id はスキップ（name/status解析・dict変換より先にチェック）
         if typhoon_id in seen_ids:
             logger.debug("typhoon_id=%s は同一電文内で重複のためスキップ", typhoon_id)
             continue
         seen_ids.add(typhoon_id)
 
-        # --- name: "<NameKana>（<Name>）" ---
+        # name
         name_kana = find_text(name_part, "NameKana")
         name_en = find_text(name_part, "Name")
         if name_kana and name_en:
@@ -101,7 +221,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         else:
             name = None
 
-        # --- status: <TyphoonClass type="熱帯擾乱種類"> ---
+        # status
         status = None
         if "階級" in kind_map:
             class_part = kind_map["階級"].find("Property/ClassPart")
@@ -111,7 +231,9 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
                         status = tc.text.strip() if tc.text else None
                         break
 
-        # --- raw_json: Item 要素の内容を dict 化 ---
+        # 現在位置
+        latitude, longitude = _extract_position(kind_map)
+
         raw_json = _element_to_dict(item)
 
         upsert_typhoon(
@@ -120,9 +242,15 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             status=status,
             raw_json=raw_json,
             reported_at=reported_at,
+            latitude=latitude,
+            longitude=longitude,
+            track_json=track,
             db_path=db_path,
         )
-        logger.info("台風保存: typhoon_id=%s name=%s status=%s", typhoon_id, name, status)
+        logger.info(
+            "台風保存: typhoon_id=%s name=%s status=%s lat=%s lon=%s track_points=%d",
+            typhoon_id, name, status, latitude, longitude, len(track),
+        )
         total += 1
 
     return total
