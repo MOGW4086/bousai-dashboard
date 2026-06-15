@@ -154,18 +154,24 @@ def upsert_warning(
 
 def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
     """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
-    pref_code の先頭2桁 + 残りの末尾ゼロを除いたプレフィクスで LIKE 検索する。
-    例: "016000" → "016%", "014030" → "01403%", "014100" → "0141%"
-    空・短い・非数字の pref_code は広範囲削除を防ぐためスキップする。
+    get_pref_code_from_area_code で正確に pref_code を特定してから削除する。
+    LIKE による前方一致は一次細分区域コードの体系次第で削除漏れが生じるため使用しない。
     """
     if not pref_code or len(pref_code) != 6 or not pref_code.isdigit():
         return
-    prefix = pref_code[:2] + pref_code[2:].rstrip("0")
+    from scheduler.area_master import get_pref_code_from_area_code
     with get_conn(db_path) as conn:
-        conn.execute(
-            "DELETE FROM warnings WHERE area_code LIKE ?",
-            (f"{prefix}%",),
-        )
+        rows = conn.execute("SELECT DISTINCT area_code FROM warnings").fetchall()
+        area_codes = [
+            r["area_code"] for r in rows
+            if get_pref_code_from_area_code(r["area_code"]) == pref_code
+        ]
+        if area_codes:
+            placeholders = ",".join("?" * len(area_codes))
+            conn.execute(
+                f"DELETE FROM warnings WHERE area_code IN ({placeholders})",
+                tuple(area_codes),
+            )
 
 
 def delete_warnings_by_type(warning_type: str, db_path: str | None = None) -> None:
