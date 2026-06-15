@@ -156,7 +156,10 @@ def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
     """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
     pref_code の先頭2桁 + 残りの末尾ゼロを除いたプレフィクスで LIKE 検索する。
     例: "016000" → "016%", "014030" → "01403%", "014100" → "0141%"
+    空の pref_code は全件削除を防ぐためスキップする。
     """
+    if not pref_code:
+        return
     prefix = pref_code[:2] + pref_code[2:].rstrip("0")
     with get_conn(db_path) as conn:
         conn.execute(

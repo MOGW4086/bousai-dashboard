@@ -53,7 +53,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         # 解除を含むいずれのステータスでも、初出の都道府県は旧データを削除する
         if area_code:
             pref = get_pref_code_from_area_code(area_code)
-            if pref not in deleted_prefs:
+            if pref and pref not in deleted_prefs:
                 delete_warnings_by_pref(pref, db_path=db_path)
                 deleted_prefs.add(pref)
 
