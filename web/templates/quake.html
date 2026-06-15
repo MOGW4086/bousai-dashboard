@@ -7,6 +7,26 @@
 {% block content %}
 <h2>地震情報</h2>
 
+<form class="filter-form" method="get" action="/quake">
+  <div class="form-inline">
+    <label for="min_scale">最大震度：</label>
+    <select id="min_scale" name="min_scale">
+      <option value="0"  {% if selected_min_scale == 0  %}selected{% endif %}>すべて</option>
+      <option value="10" {% if selected_min_scale == 10 %}selected{% endif %}>震度1以上</option>
+      <option value="30" {% if selected_min_scale == 30 %}selected{% endif %}>震度3以上</option>
+      <option value="40" {% if selected_min_scale == 40 %}selected{% endif %}>震度4以上</option>
+      <option value="50" {% if selected_min_scale == 50 %}selected{% endif %}>震度5弱以上</option>
+    </select>
+    <label for="limit">表示件数：</label>
+    <select id="limit" name="limit">
+      <option value="20"  {% if selected_limit == 20  %}selected{% endif %}>20件</option>
+      <option value="50"  {% if selected_limit == 50  %}selected{% endif %}>50件</option>
+      <option value="100" {% if selected_limit == 100 %}selected{% endif %}>100件</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">絞り込み</button>
+  </div>
+</form>
+
 <div id="quake-map" style="height:400px; margin-bottom:1.5rem;"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>

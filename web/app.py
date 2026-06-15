@@ -125,10 +125,33 @@ def dashboard():
 
 @app.route("/quake")
 def quake():
-    """地震情報一覧ページ。"""
-    quakes = get_recent_quakes(limit=50)
+    """地震情報一覧ページ。クエリパラメータで最大震度・表示件数を絞り込み可能。"""
+    VALID_LIMITS = {20, 50, 100}
+    VALID_MIN_SCALES = {0, 10, 30, 40, 50}
+
+    try:
+        limit = int(request.args.get("limit", 50))
+    except (ValueError, TypeError):
+        limit = 50
+    if limit not in VALID_LIMITS:
+        limit = 50
+
+    try:
+        min_scale = int(request.args.get("min_scale", 0))
+    except (ValueError, TypeError):
+        min_scale = 0
+    if min_scale not in VALID_MIN_SCALES:
+        min_scale = 0
+
+    quakes = get_recent_quakes(limit=limit, min_scale=min_scale)
     last_updated = _get_last_updated()
-    return _make_response_with_cookie("quake.html", quakes=quakes, last_updated=last_updated)
+    return _make_response_with_cookie(
+        "quake.html",
+        quakes=quakes,
+        last_updated=last_updated,
+        selected_limit=limit,
+        selected_min_scale=min_scale,
+    )
 
 
 @app.route("/warning")
