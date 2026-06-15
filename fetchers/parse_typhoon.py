@@ -106,10 +106,12 @@ def _build_kind_map(item: etree._Element) -> dict[str, etree._Element]:
 
 
 def _extract_position(kind_map: dict[str, etree._Element]) -> tuple[float | None, float | None]:
-    """kind_map から現在位置の (latitude, longitude) を返す。"""
-    for key in ("位置", "位置及び予報円"):
-        if key in kind_map:
-            coord_text = find_text(kind_map[key], "Property/CenterPart/Coordinate")
+    """kind_map から現在位置の (latitude, longitude) を返す。
+    "位置（推定）" 等の派生種別にも対応するため部分一致で検索する。
+    """
+    for key, kind in kind_map.items():
+        if "位置" in key:
+            coord_text = find_text(kind, "Property/CenterPart/Coordinate")
             if coord_text:
                 return _parse_coordinate(coord_text)
     return None, None
