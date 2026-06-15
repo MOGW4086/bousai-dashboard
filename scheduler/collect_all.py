@@ -13,6 +13,7 @@ from db.models import (
     cleanup_xml_feed_state,
     delete_defunct_typhoons,
     delete_expired_tsunami_warnings,
+    delete_old_minor_quakes,
     delete_past_heatstroke_alerts,
     insert_collection_log,
 )
@@ -92,6 +93,12 @@ def collect(sources: list[str], db_path: str | None = None) -> None:
         delete_expired_tsunami_warnings,
         "tsunami_warnings",
         "tsunami_warnings クリーンアップ: %d件削除（24時間超）",
+        path
+    )
+    _run_cleanup_task(
+        delete_old_minor_quakes,
+        "quakes(minor)",
+        "微小地震クリーンアップ: %d件削除（30日超・震度2以下）",
         path
     )
 

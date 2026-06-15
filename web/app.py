@@ -136,8 +136,14 @@ def warning():
     """警報・注意報一覧ページ。"""
     warnings = get_active_warnings()
     _enrich_warnings_with_pref(warnings)
+    # pref_code の地理的順序（北から南）でソートしてからグループ化
+    warnings.sort(key=lambda w: w.get("pref_code") or "999999")
+    pref_groups: dict[str, list[dict]] = {}
+    for w in warnings:
+        key = w.get("pref_name") or w.get("area_code") or "不明"
+        pref_groups.setdefault(key, []).append(w)
     last_updated = _get_last_updated()
-    return _make_response_with_cookie("warning.html", warnings=warnings, last_updated=last_updated)
+    return _make_response_with_cookie("warning.html", pref_groups=pref_groups, last_updated=last_updated)
 
 
 @app.route("/typhoon")

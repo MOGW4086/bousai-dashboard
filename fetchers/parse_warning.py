@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from lxml import etree
 from db.models import upsert_warning, delete_warnings_by_pref
 from fetchers.xml_utils import find_text
+from scheduler.area_master import get_pref_code_from_area_code
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,6 @@ def _level(warning_type: str) -> str:
     if "警報" in warning_type:
         return "warning"
     return "advisory"
-
-
-def _pref_code(area_code: str) -> str:
-    """area_code の先頭3桁 + "000" を返す。"""
-    return area_code[:3] + "000"
 
 
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
@@ -54,18 +50,19 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         area_name = (area_el.findtext("Name") or "").strip()
         area_code = (area_el.findtext("Code") or "").strip()
 
+        # 解除を含むいずれのステータスでも、初出の都道府県は旧データを削除する
+        if area_code:
+            pref = get_pref_code_from_area_code(area_code)
+            if pref and pref not in deleted_prefs:
+                delete_warnings_by_pref(pref, db_path=db_path)
+                deleted_prefs.add(pref)
+
         for kind in item.findall("Kind"):
             kind_name = (kind.findtext("Name") or "").strip()
             status = (kind.findtext("Status") or "").strip()
 
             if status not in ("発表", "継続"):
                 continue
-
-            if area_code:
-                pref = _pref_code(area_code)
-                if pref not in deleted_prefs:
-                    delete_warnings_by_pref(pref, db_path=db_path)
-                    deleted_prefs.add(pref)
 
             level = _level(kind_name)
             upsert_warning(

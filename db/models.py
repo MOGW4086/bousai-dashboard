@@ -153,12 +153,25 @@ def upsert_warning(
 
 
 def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
-    """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。"""
+    """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
+    get_pref_code_from_area_code で正確に pref_code を特定してから削除する。
+    LIKE による前方一致は一次細分区域コードの体系次第で削除漏れが生じるため使用しない。
+    """
+    if not pref_code or len(pref_code) != 6 or not pref_code.isdigit():
+        return
+    from scheduler.area_master import get_pref_code_from_area_code
     with get_conn(db_path) as conn:
-        conn.execute(
-            "DELETE FROM warnings WHERE area_code LIKE ?",
-            (f"{pref_code}%",),
-        )
+        rows = conn.execute("SELECT DISTINCT area_code FROM warnings").fetchall()
+        area_codes = [
+            r["area_code"] for r in rows
+            if get_pref_code_from_area_code(r["area_code"]) == pref_code
+        ]
+        if area_codes:
+            placeholders = ",".join("?" * len(area_codes))
+            conn.execute(
+                f"DELETE FROM warnings WHERE area_code IN ({placeholders})",
+                tuple(area_codes),
+            )
 
 
 def delete_warnings_by_type(warning_type: str, db_path: str | None = None) -> None:
@@ -460,6 +473,19 @@ def mark_processed(entry_id: str, db_path=None) -> None:
             "INSERT OR IGNORE INTO xml_feed_state (entry_id) VALUES (?)",
             (entry_id,),
         )
+
+
+def delete_old_minor_quakes(db_path: str | None = None, days: int = 30, max_scale: int = 20) -> int:
+    """30日以上前の震度2以下の地震を削除してDB肥大化を防ぐ。削除件数を返す。
+    quakes.fetched_at は init_db.py の DDL で DEFAULT (datetime('now','localtime')) が定義済み。
+    """
+    threshold = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    with get_conn(db_path) as conn:
+        cur = conn.execute(
+            "DELETE FROM quakes WHERE fetched_at < ? AND (max_scale IS NULL OR max_scale <= ?)",
+            (threshold, max_scale),
+        )
+        return cur.rowcount
 
 
 def cleanup_xml_feed_state(db_path: str | None = None, threshold: str | None = None) -> int:

@@ -2,27 +2,32 @@
 {% block title %}警報・注意報 - 防災ダッシュボード{% endblock %}
 {% block content %}
 <h2>警報・注意報</h2>
-{% if warnings %}
-<table class="table">
-  <thead>
-    <tr>
-      <th>地域</th>
-      <th>種別</th>
-      <th>レベル</th>
-      <th>発表日時</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for w in warnings %}
-    <tr>
-      <td>{% if w.pref_name and w.pref_name != w.area_name %}{{ w.pref_name }} {% endif %}{{ w.area_name or w.area_code }}</td>
-      <td>{{ w.warning_type }}</td>
-      <td>{% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}</td>
-      <td>{{ w.reported_at or '-' }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% if pref_groups %}
+{% for pref_name, ws in pref_groups.items() %}
+<section class="pref-warning-group">
+  <h3 class="pref-warning-title">{{ pref_name }}</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>地域</th>
+        <th>種別</th>
+        <th>レベル</th>
+        <th>発表日時</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in ws %}
+      <tr>
+        <td>{{ w.area_name or w.area_code }}</td>
+        <td>{{ w.warning_type }}</td>
+        <td>{% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}</td>
+        <td>{{ w.reported_at or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
 {% else %}
 <p class="no-data">現在、警報・注意報の発令はありません。</p>
 {% endif %}
