@@ -154,10 +154,10 @@ def upsert_warning(
 
 def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
     """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
-    pref_code の末尾ゼロを除いた共通プレフィクスで LIKE 検索する。
+    pref_code の先頭3桁の共通プレフィクスで LIKE 検索する。
     例: "016000" → "016%" で 016010/016020 も削除できる。
     """
-    prefix = pref_code.rstrip("0") or pref_code[:1]
+    prefix = pref_code[:3]
     with get_conn(db_path) as conn:
         conn.execute(
             "DELETE FROM warnings WHERE area_code LIKE ?",
