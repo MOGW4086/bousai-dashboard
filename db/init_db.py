@@ -56,6 +56,9 @@ CREATE TABLE IF NOT EXISTS typhoons (
     status      TEXT,
     reported_at TEXT,
     raw_json    TEXT,
+    latitude    REAL,
+    longitude   REAL,
+    track_json  TEXT,
     fetched_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 
@@ -162,6 +165,15 @@ def init_db(db_path: str | None = None) -> None:
             conn.execute("ALTER TABLE quakes ADD COLUMN latitude REAL")
         if "longitude" not in q_cols:
             conn.execute("ALTER TABLE quakes ADD COLUMN longitude REAL")
+        conn.commit()
+        # typhoons に latitude/longitude/track_json カラムを追加（既存DBのマイグレーション）
+        ty_cols = [row[1] for row in conn.execute("PRAGMA table_info(typhoons)").fetchall()]
+        if "latitude" not in ty_cols:
+            conn.execute("ALTER TABLE typhoons ADD COLUMN latitude REAL")
+        if "longitude" not in ty_cols:
+            conn.execute("ALTER TABLE typhoons ADD COLUMN longitude REAL")
+        if "track_json" not in ty_cols:
+            conn.execute("ALTER TABLE typhoons ADD COLUMN track_json TEXT")
         conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:
