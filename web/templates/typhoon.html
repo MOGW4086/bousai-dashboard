@@ -12,8 +12,8 @@
 <script>
 const typhoons = {{ typhoons | tojson }};
 const escapeHtml = (str) => {
-    if (!str) return '';
-    return str.replace(/[&<>'"]/g, tag => ({
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
     }[tag] || tag));
 };
@@ -49,18 +49,19 @@ typhoons.forEach((t, idx) => {
             radius, color, fillColor, fillOpacity: isCurrent ? 0.9 : 0.7, weight: 2
         });
         const kindLabel = isCurrent ? '実況' : `予報 ${escapeHtml(p.at || '')}`;
+        const fRadius = p.forecast_radius || p.forecast_radius_70;
         marker.bindPopup(
             `<b>${escapeHtml(t.name || t.typhoon_id)}</b><br>` +
             `${kindLabel}<br>` +
             `${p.lat >= 0 ? '北緯' : '南緯'}${Math.abs(p.lat).toFixed(1)}° ${p.lon >= 0 ? '東経' : '西経'}${Math.abs(p.lon).toFixed(1)}°` +
-            (p.forecast_radius ? `<br>予報円: ${p.forecast_radius} km` : '')
+            (fRadius ? `<br>予報円: ${fRadius} km` : '')
         );
         marker.addTo(map);
 
         // 予報円（予報ポイントのみ）
-        if (!isCurrent && p.forecast_radius) {
+        if (!isCurrent && fRadius) {
             L.circle([p.lat, p.lon], {
-                radius: p.forecast_radius * 1000,
+                radius: fRadius * 1000,
                 color, fillColor: color, fillOpacity: 0.05, weight: 1, dashArray: '4'
             }).addTo(map);
         }
