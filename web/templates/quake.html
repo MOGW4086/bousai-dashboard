@@ -9,7 +9,7 @@
 
 <form class="filter-form" method="get" action="/quake">
   <div class="form-inline">
-    <label for="min_scale">最大震度：</label>
+    <label for="min_scale">震度フィルタ：</label>
     <select id="min_scale" name="min_scale">
       <option value="0"  {% if selected_min_scale == 0  %}selected{% endif %}>すべて</option>
       <option value="10" {% if selected_min_scale == 10 %}selected{% endif %}>震度1以上</option>
