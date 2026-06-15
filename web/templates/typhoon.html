@@ -67,9 +67,9 @@ typhoons.forEach((t, idx) => {
     });
 });
 
-// 全台風を包含するビューに調整
+// 全台風を包含するビューに調整（maxZoom: 1点のみの場合の過剰ズームイン防止）
 if (allPoints.length > 0) {
-    map.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40] });
+    map.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40], maxZoom: 6 });
 }
 </script>
 
@@ -91,7 +91,8 @@ if (allPoints.length > 0) {
       <td>{{ t.status or '-' }}</td>
       <td>
         {% if t.latitude is not none and t.longitude is not none %}
-          北緯{{ '%.1f' % t.latitude }}° 東経{{ '%.1f' % t.longitude }}°
+          {% if t.latitude >= 0 %}北緯{{ '%.1f' % t.latitude }}{% else %}南緯{{ '%.1f' % (-t.latitude) }}{% endif %}°
+          {% if t.longitude >= 0 %}東経{{ '%.1f' % t.longitude }}{% else %}西経{{ '%.1f' % (-t.longitude) }}{% endif %}°
         {% else %}-{% endif %}
       </td>
       <td>{{ t.fetched_at }}</td>

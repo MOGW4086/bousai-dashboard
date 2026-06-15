@@ -37,15 +37,43 @@ def _element_to_dict(el: etree._Element, _depth: int = 0) -> dict:
     return result
 
 
+def _dms_digits_to_decimal(digits: str, deg_len: int) -> float | None:
+    """JMA ISO 6709 の純数字 DDMM / DDMMSS 形式を10進度に変換する。
+    deg_len: 度部分の桁数（緯度=2, 経度=3）
+    """
+    n = len(digits)
+    if n == deg_len:
+        return float(digits)
+    if n == deg_len + 2:
+        return int(digits[:deg_len]) + int(digits[deg_len:]) / 60
+    if n == deg_len + 4:
+        return int(digits[:deg_len]) + int(digits[deg_len:deg_len + 2]) / 60 + int(digits[deg_len + 2:]) / 3600
+    return None
+
+
 def _parse_coordinate(text: str) -> tuple[float | None, float | None]:
     """ISO 6709 形式の座標文字列から (latitude, longitude) を返す。
-    例: '+25.0+130.5/' → (25.0, 130.5)
-        '+32d30m+130d45m/' → (32.5, 130.75)
+    JMA VPTW60 で使用される形式:
+      +DDMM+DDDMM/       → 度分（JMA標準: +2510+13020/）
+      +DDMMSS+DDDMMSS/   → 度分秒（+353612+1394530/）
+      +DD.D+DDD.D/        → 10進度
+      +DDdMMm+DDDdMMm/   → 記号付き度分
     """
     if not text:
         return None, None
     text = text.strip().rstrip("/")
-    # 度分（秒）形式: +DDdMMm[SSs]+DDDdMMm[SSs]
+
+    # 10進度形式（小数点あり）: +DD.D+DDD.D
+    if "." in text:
+        m = re.match(r"^([+-]\d+\.\d*)([+-]\d+\.\d*)$", text)
+        if m:
+            try:
+                return float(m.group(1)), float(m.group(2))
+            except ValueError:
+                pass
+        return None, None
+
+    # 記号付き度分秒形式: +DDdMMm[SSs]+DDDdMMm[SSs]
     m = re.match(r"^([+-])(\d+)d(\d+)m(?:(\d+)s)?([+-])(\d+)d(\d+)m(?:(\d+)s)?$", text)
     if m:
         lat_sign = -1 if m.group(1) == "-" else 1
@@ -53,13 +81,17 @@ def _parse_coordinate(text: str) -> tuple[float | None, float | None]:
         lon_sign = -1 if m.group(5) == "-" else 1
         lon = lon_sign * (int(m.group(6)) + int(m.group(7)) / 60 + int(m.group(8) or 0) / 3600)
         return lat, lon
-    # 10進度形式: +DD.D+DDD.D
-    m = re.match(r"^([+-]\d+\.?\d*)([+-]\d+\.?\d*)$", text)
+
+    # 純数字形式（JMA VPTW60 標準）: ±DDMM±DDDMM または ±DDMMSS±DDDMMSS
+    m = re.match(r"^([+-])(\d{2,6})([+-])(\d{3,7})$", text)
     if m:
-        try:
-            return float(m.group(1)), float(m.group(2))
-        except ValueError:
-            pass
+        lat_sign = -1 if m.group(1) == "-" else 1
+        lon_sign = -1 if m.group(3) == "-" else 1
+        lat = _dms_digits_to_decimal(m.group(2), 2)
+        lon = _dms_digits_to_decimal(m.group(4), 3)
+        if lat is not None and lon is not None:
+            return lat_sign * lat, lon_sign * lon
+
     return None, None
 
 
@@ -109,7 +141,7 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
                 continue
             entry: dict = {"kind": dt_type, "at": dt_text, "lat": lat, "lon": lon}
             # 予報円半径（unit属性が nm の場合は km に換算）
-            for radius_el in kind.findall("Property/ForecastPart/Radius"):
+            for radius_el in kind.findall("Property/ForecastPart//Radius"):
                 cond = radius_el.get("condition", "")
                 unit = radius_el.get("unit", "km")
                 try:
