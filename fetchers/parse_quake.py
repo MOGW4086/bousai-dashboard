@@ -24,7 +24,7 @@ INTENSITY_MAP = {
     "7": 70,
 }
 
-MIN_SCALE = 55  # 5強以上のみ保存
+MIN_SCALE = 0  # 全震度を保存（表示フィルタはUIで行う）
 
 
 def _parse_coordinate(text: str | None) -> tuple[float | None, float | None]:

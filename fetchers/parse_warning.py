@@ -54,18 +54,19 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         area_name = (area_el.findtext("Name") or "").strip()
         area_code = (area_el.findtext("Code") or "").strip()
 
+        # 解除を含むいずれのステータスでも、初出の都道府県は旧データを削除する
+        if area_code:
+            pref = _pref_code(area_code)
+            if pref not in deleted_prefs:
+                delete_warnings_by_pref(pref, db_path=db_path)
+                deleted_prefs.add(pref)
+
         for kind in item.findall("Kind"):
             kind_name = (kind.findtext("Name") or "").strip()
             status = (kind.findtext("Status") or "").strip()
 
             if status not in ("発表", "継続"):
                 continue
-
-            if area_code:
-                pref = _pref_code(area_code)
-                if pref not in deleted_prefs:
-                    delete_warnings_by_pref(pref, db_path=db_path)
-                    deleted_prefs.add(pref)
 
             level = _level(kind_name)
             upsert_warning(
