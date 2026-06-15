@@ -136,7 +136,8 @@ def warning():
     """警報・注意報一覧ページ。"""
     warnings = get_active_warnings()
     _enrich_warnings_with_pref(warnings)
-    # 都道府県ごとにグループ化（pref_code 順を維持しつつ挿入順で都道府県を並べる）
+    # pref_code の地理的順序（北から南）でソートしてからグループ化
+    warnings.sort(key=lambda w: w.get("pref_code") or "999999")
     pref_groups: dict[str, list[dict]] = {}
     for w in warnings:
         key = w.get("pref_name") or w.get("area_name") or w.get("area_code") or "不明"
