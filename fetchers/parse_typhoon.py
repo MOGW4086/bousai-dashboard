@@ -140,20 +140,24 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
             if lat is None or lon is None:
                 continue
             entry: dict = {"kind": dt_type, "at": dt_text, "lat": lat, "lon": lon}
-            # 予報円半径（unit属性が nm の場合は km に換算）
-            for radius_el in kind.findall("Property/ForecastPart//Radius"):
-                cond = radius_el.get("condition", "")
-                unit = radius_el.get("unit", "km")
-                try:
-                    r_km = int(radius_el.text.strip())
-                    if unit == "nm":
-                        r_km = round(r_km * 1.852)
-                    if cond == "高確度":
-                        entry["forecast_radius_70"] = r_km
-                    else:
-                        entry.setdefault("forecast_radius", r_km)
-                except (ValueError, AttributeError):
-                    pass
+            # 予報円半径（Category/Type="予報円" に絞って取得。JMA 単位は "海里" または "nm"）
+            for category in kind.findall("Property/ForecastPart/Category"):
+                type_el = category.find("Type")
+                if type_el is None or "予報円" not in (type_el.text or ""):
+                    continue
+                for radius_el in category.findall(".//Radius"):
+                    cond = radius_el.get("condition", "")
+                    unit = radius_el.get("unit", "km")
+                    try:
+                        r_km = int(radius_el.text.strip())
+                        if unit in ("nm", "海里"):
+                            r_km = round(r_km * 1.852)
+                        if cond == "高確度":
+                            entry["forecast_radius_70"] = r_km
+                        else:
+                            entry.setdefault("forecast_radius", r_km)
+                    except (ValueError, AttributeError):
+                        pass
             track.append(entry)
             break
     return track

@@ -148,7 +148,8 @@ def typhoon():
         raw_track = t.pop("track_json", None)
         t.pop("raw_json", None)
         try:
-            t["track"] = json.loads(raw_track) if raw_track else []
+            parsed = json.loads(raw_track) if raw_track else []
+            t["track"] = parsed if isinstance(parsed, list) else []
         except (json.JSONDecodeError, TypeError):
             t["track"] = []
     last_updated = _get_last_updated()
