@@ -476,7 +476,9 @@ def mark_processed(entry_id: str, db_path=None) -> None:
 
 
 def delete_old_minor_quakes(db_path: str | None = None, days: int = 30, max_scale: int = 20) -> int:
-    """30日以上前の震度2以下の地震を削除してDB肥大化を防ぐ。削除件数を返す。"""
+    """30日以上前の震度2以下の地震を削除してDB肥大化を防ぐ。削除件数を返す。
+    quakes.fetched_at は init_db.py の DDL で DEFAULT (datetime('now','localtime')) が定義済み。
+    """
     threshold = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
     with get_conn(db_path) as conn:
         cur = conn.execute(
