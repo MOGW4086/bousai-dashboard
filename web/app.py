@@ -49,6 +49,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 VIEWER_COOKIE = "viewer_id"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 365日
 
+VALID_LIMITS = frozenset({20, 50, 100})
+VALID_MIN_SCALES = frozenset({0, 10, 20, 30, 40, 50, 55, 60, 65, 70})
+
+DEFAULT_LIMIT = 50
+DEFAULT_MIN_SCALE = 0
+
 
 def get_viewer_id() -> str:
     """リクエストからviewer_idを取得する。存在しない場合は新規UUID生成。"""
@@ -125,10 +131,24 @@ def dashboard():
 
 @app.route("/quake")
 def quake():
-    """地震情報一覧ページ。"""
-    quakes = get_recent_quakes(limit=50)
+    """地震情報一覧ページ。クエリパラメータで最大震度・表示件数を絞り込み可能。"""
+    limit = request.args.get("limit", default=DEFAULT_LIMIT, type=int)
+    if limit not in VALID_LIMITS:
+        limit = DEFAULT_LIMIT
+
+    min_scale = request.args.get("min_scale", default=DEFAULT_MIN_SCALE, type=int)
+    if min_scale not in VALID_MIN_SCALES:
+        min_scale = DEFAULT_MIN_SCALE
+
+    quakes = get_recent_quakes(limit=limit, min_scale=min_scale)
     last_updated = _get_last_updated()
-    return _make_response_with_cookie("quake.html", quakes=quakes, last_updated=last_updated)
+    return _make_response_with_cookie(
+        "quake.html",
+        quakes=quakes,
+        last_updated=last_updated,
+        selected_limit=limit,
+        selected_min_scale=min_scale,
+    )
 
 
 @app.route("/warning")
