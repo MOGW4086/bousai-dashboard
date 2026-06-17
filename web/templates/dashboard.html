@@ -68,11 +68,11 @@
         </td>
         <td>{{ 'M%.1f' % q.magnitude if q.magnitude else '-' }}</td>
         <td>
-          {% if q.tsunami == 'あり' %}
+          {% if q.tsunami == 'あり' or q.tsunami == 'Major' %}
             <span class="badge badge-danger">津波あり</span>
           {% elif q.tsunami == '軽微' %}
-            <span class="badge badge-warning">軽微な海面変動</span>
-          {% elif q.tsunami == 'なし' %}
+            <span class="badge badge-advisory">軽微な海面変動</span>
+          {% elif q.tsunami == 'なし' or q.tsunami == 'None' %}
             <span class="badge badge-safe">心配なし</span>
           {% else %}
             {{ q.tsunami or '-' }}
