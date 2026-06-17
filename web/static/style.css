@@ -164,19 +164,25 @@ h3 {
 }
 
 .badge-warning {
-  background: #f44336;
+  background: #ff9800;
   color: #fff;
 }
 
 .badge-advisory {
-  background: #ff9800;
-  color: #fff;
+  background: #fbc02d;
+  color: #333;
 }
 
 .badge-ok {
   background: #4caf50;
   color: #fff;
 }
+
+.badge-danger {
+  background: #b71c1c;
+  color: #fff;
+}
+
 
 /* ─── 震度バッジ ───────────────────────────────────────────── */
 .scale-badge {

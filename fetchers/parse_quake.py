@@ -52,6 +52,36 @@ def _parse_scale(text: str | None) -> int | None:
     return INTENSITY_MAP.get(text.strip())
 
 
+# VXSE53 ForecastComment/Code の津波コード定義
+# 0201/0213: 津波の心配なし、0202/0211/0212/0214: 若干の海面変動（被害なし）、その他: 津波情報あり
+# ※ 未知の 02xx コードは安全側（"あり"）にデフォルトする
+TSUNAMI_CODE_MAP = {
+    "0201": "なし",
+    "0213": "なし",
+    "0202": "軽微",
+    "0211": "軽微",
+    "0212": "軽微",
+    "0214": "軽微",
+}
+
+
+def _parse_tsunami_code(code: str | None) -> str:
+    """VXSE53 ForecastComment/Code から津波状況を表す日本語文字列を返す。
+
+    Args:
+        code: 気象庁XMLの Body/Comments/ForecastComment/Code の値。
+
+    Returns:
+        "なし" / "軽微" / "あり" のいずれか。コードが取得できない場合は "なし"。
+    """
+    if not code or not code.strip():
+        return "なし"
+    cleaned_code = code.strip()
+    if cleaned_code in TSUNAMI_CODE_MAP:
+        return TSUNAMI_CODE_MAP[cleaned_code]
+    return "あり"
+
+
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     """VXSE53 XMLを解析して地震情報をDBに保存する。保存件数（0 or 1）を返す。"""
     event_id = find_text(root, "Head/EventID")
@@ -59,7 +89,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
     hypocenter = find_text(root, "Body/Earthquake/Hypocenter/Area/Name")
     magnitude_str = find_text(root, "Body/Earthquake/Magnitude")
     max_int_str = find_text(root, "Body/Intensity/Observation/MaxInt")
-    tsunami_text = find_text(root, "Body/Comments/ForecastComment/Text")
+    tsunami_code = find_text(root, "Body/Comments/ForecastComment/Code")
     coord_text = find_text(root, "Body/Earthquake/Hypocenter/Area/Coordinate")
     latitude, longitude = _parse_coordinate(coord_text)
 
@@ -76,10 +106,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         logger.debug("震度フィルタで除外: max_int=%s max_scale=%s", max_int_str, max_scale)
         return 0
 
-    if tsunami_text and "津波" in tsunami_text:
-        tsunami = "Major"
-    else:
-        tsunami = "None"
+    tsunami = _parse_tsunami_code(tsunami_code)
 
     if not event_id:
         logger.warning("EventID が取得できませんでした")
