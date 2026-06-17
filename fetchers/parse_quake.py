@@ -53,14 +53,10 @@ def _parse_scale(text: str | None) -> int | None:
 
 
 # VXSE53 ForecastComment/Code の津波コード定義
-# 0201/0213: 津波の心配なし、0202/0211/0212/0214: 若干の海面変動（被害なし）、その他: 津波情報あり
+# 0201/0213: 津波の心配なし、0202系: 若干の海面変動（被害なし）、その他: 津波情報あり
 TSUNAMI_CODE_MAP = {
     "0201": "なし",
     "0213": "なし",
-    "0202": "軽微",
-    "0211": "軽微",
-    "0212": "軽微",
-    "0214": "軽微",
 }
 
 
@@ -75,7 +71,12 @@ def _parse_tsunami_code(code: str | None) -> str:
     """
     if not code or not code.strip():
         return "なし"
-    return TSUNAMI_CODE_MAP.get(code.strip(), "あり")
+    cleaned_code = code.strip()
+    if cleaned_code in TSUNAMI_CODE_MAP:
+        return TSUNAMI_CODE_MAP[cleaned_code]
+    if cleaned_code.startswith("02"):
+        return "軽微"
+    return "あり"
 
 
 def handle(root: etree._Element, reported_at: str, db_path=None) -> int:

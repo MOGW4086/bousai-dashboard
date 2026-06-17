@@ -76,7 +76,7 @@ quakes.forEach(q => {
         {% elif q.tsunami == '軽微' %}
           <span class="badge badge-advisory">軽微な海面変動</span>
         {% elif q.tsunami == 'なし' or q.tsunami == 'None' %}
-          <span class="badge badge-safe">心配なし</span>
+          <span class="badge badge-ok">心配なし</span>
         {% else %}
           {{ q.tsunami or '-' }}
         {% endif %}
