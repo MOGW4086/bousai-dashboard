@@ -129,17 +129,11 @@ def dashboard():
 @app.route("/quake")
 def quake():
     """地震情報一覧ページ。クエリパラメータで最大震度・表示件数を絞り込み可能。"""
-    try:
-        limit = int(request.args.get("limit", 50))
-    except (ValueError, TypeError):
-        limit = 50
+    limit = request.args.get("limit", default=50, type=int)
     if limit not in VALID_LIMITS:
         limit = 50
 
-    try:
-        min_scale = int(request.args.get("min_scale", 0))
-    except (ValueError, TypeError):
-        min_scale = 0
+    min_scale = request.args.get("min_scale", default=0, type=int)
     if min_scale not in VALID_MIN_SCALES:
         min_scale = 0
 
