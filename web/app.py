@@ -50,7 +50,7 @@ VIEWER_COOKIE = "viewer_id"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 365日
 
 VALID_LIMITS = frozenset({20, 50, 100})
-VALID_MIN_SCALES = frozenset({0, 10, 30, 40, 50})
+VALID_MIN_SCALES = frozenset({0, 10, 20, 30, 40, 50, 55, 60, 65, 70})
 
 
 def get_viewer_id() -> str:
