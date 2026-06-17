@@ -13,9 +13,14 @@
     <select id="min_scale" name="min_scale">
       <option value="0"  {% if selected_min_scale == 0  %}selected{% endif %}>すべて</option>
       <option value="10" {% if selected_min_scale == 10 %}selected{% endif %}>震度1以上</option>
+      <option value="20" {% if selected_min_scale == 20 %}selected{% endif %}>震度2以上</option>
       <option value="30" {% if selected_min_scale == 30 %}selected{% endif %}>震度3以上</option>
       <option value="40" {% if selected_min_scale == 40 %}selected{% endif %}>震度4以上</option>
       <option value="50" {% if selected_min_scale == 50 %}selected{% endif %}>震度5弱以上</option>
+      <option value="55" {% if selected_min_scale == 55 %}selected{% endif %}>震度5強以上</option>
+      <option value="60" {% if selected_min_scale == 60 %}selected{% endif %}>震度6弱以上</option>
+      <option value="65" {% if selected_min_scale == 65 %}selected{% endif %}>震度6強以上</option>
+      <option value="70" {% if selected_min_scale == 70 %}selected{% endif %}>震度7以上</option>
     </select>
     <label for="limit">表示件数：</label>
     <select id="limit" name="limit">
