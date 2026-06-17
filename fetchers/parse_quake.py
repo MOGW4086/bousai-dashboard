@@ -69,7 +69,7 @@ def _parse_tsunami_code(code: str | None) -> str:
     Returns:
         "なし" / "軽微" / "あり" のいずれか。コードが取得できない場合は "なし"。
     """
-    if code is None:
+    if not code or not code.strip():
         return "なし"
     return TSUNAMI_CODE_MAP.get(code.strip(), "あり")
 
