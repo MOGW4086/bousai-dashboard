@@ -20,6 +20,8 @@ HANDLERS = {
     "VXSE53": parse_quake.handle,
     "VPWW53": parse_warning.handle,
     "VXWW50": parse_sediment.handle,
+    "VFVO50": parse_volcano.handle_vfvo50,
+    "VFVO52": parse_volcano.handle_vfvo52,
     "VFVO53": parse_volcano.handle,
     "VPFT50": parse_heatstroke.handle,
     # VPTW60〜VPTW65: 台風解析・予報情報（５日予報）（H30形式）
