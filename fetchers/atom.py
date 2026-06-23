@@ -22,8 +22,9 @@ HANDLERS = {
     "VXWW50": parse_sediment.handle,
     "VFVO53": parse_volcano.handle,
     "VPFT50": parse_heatstroke.handle,
-    # VPTW60〜VPTW69: 台風解析・予報情報（同時発生台風ごとに番号が割り当てられる）
-    **{f"VPTW6{i}": parse_typhoon.handle for i in range(10)},
+    # VPTW60〜VPTW65: 台風解析・予報情報（５日予報）（H30形式）
+    # 気象庁XML仕様 表1.1 通番9: VPTWii (ii=60-65)
+    **{f"VPTW6{i}": parse_typhoon.handle for i in range(6)},
     "VTWW53": lambda root, reported_at, **kw: parse_tsunami.handle(root, reported_at, telegram_type="VTWW53", **kw),
     # 遠地地震の津波警報・注意報・予報は VTSE41 として配信される（エリアコードは 010000 共通）
     "VTSE41": lambda root, reported_at, **kw: parse_tsunami.handle(root, reported_at, telegram_type="VTSE41", **kw),
