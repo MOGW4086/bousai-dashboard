@@ -1,4 +1,4 @@
-"""VPTW60 台風解析・予報情報 パーサー。"""
+"""VPTW60-VPTW69 台風解析・予報情報 パーサー。"""
 import logging
 import re
 import sys
@@ -107,10 +107,10 @@ def _build_kind_map(item: etree._Element) -> dict[str, etree._Element]:
 
 def _extract_position(kind_map: dict[str, etree._Element]) -> tuple[float | None, float | None]:
     """kind_map から現在位置の (latitude, longitude) を返す。
-    "位置（推定）" 等の派生種別にも対応するため部分一致で検索する。
+    JMA VPTW60 では Type="中心" 配下の CenterPart/Coordinate に実況位置が入る。
     """
     for key, kind in kind_map.items():
-        if "位置" in key:
+        if "位置" in key or key == "中心":
             coord_text = find_text(kind, "Property/CenterPart/Coordinate")
             if coord_text:
                 return _parse_coordinate(coord_text)
@@ -133,33 +133,31 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
 
         for kind in item.findall("Kind"):
             type_text = find_text(kind, "Property/Type")
-            if not type_text or "位置" not in type_text:
+            if not type_text or ("位置" not in type_text and type_text != "中心"):
                 continue
+            # 実況: CenterPart/Coordinate、予報: ProbabilityCircle/BasePoint（type="中心位置（度）"）
             coord_text = find_text(kind, "Property/CenterPart/Coordinate")
+            if not coord_text:
+                for bp in kind.findall("Property/CenterPart/ProbabilityCircle/BasePoint"):
+                    if bp.get("type", "") == "中心位置（度）" and bp.text:
+                        coord_text = bp.text.strip()
+                        break
             if not coord_text:
                 continue
             lat, lon = _parse_coordinate(coord_text)
             if lat is None or lon is None:
                 continue
             entry: dict = {"kind": dt_type, "at": dt_text, "lat": lat, "lon": lon}
-            # 予報円半径（Category/Type="予報円" に絞って取得。JMA 単位は "海里" または "nm"）
-            for category in kind.findall("Property/ForecastPart/Category"):
-                type_el = category.find("Type")
-                if type_el is None or "予報円" not in (type_el.text or ""):
-                    continue
-                for radius_el in category.findall(".//Radius"):
-                    cond = radius_el.get("condition", "")
-                    unit = radius_el.get("unit", "km")
-                    try:
-                        r_km = int(radius_el.text.strip())
-                        if unit.lower() in ("nm", "海里"):
-                            r_km = round(r_km * 1.852)
-                        if cond in ("70%", "高確度"):
-                            entry["forecast_radius_70"] = r_km
-                        else:
-                            entry.setdefault("forecast_radius", r_km)
-                    except (ValueError, AttributeError):
-                        pass
+            # 予報円半径（ProbabilityCircle は定義上 70% 確率円のため直接 forecast_radius_70 に格納）
+            for radius_el in kind.findall("Property/CenterPart/ProbabilityCircle/Axes/Axis/Radius"):
+                unit = radius_el.get("unit", "km")
+                try:
+                    r_km = int(radius_el.text.strip())
+                    if unit.lower() in ("nm", "海里"):
+                        r_km = round(r_km * 1.852)
+                    entry["forecast_radius_70"] = max(entry.get("forecast_radius_70", 0), r_km)
+                except (ValueError, AttributeError):
+                    pass
             track.append(entry)
             break
     return track
@@ -175,8 +173,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         logger.warning("MeteorologicalInfos が見つかりません")
         return 0
 
-    # VPTW60 は1電文1台風のため、MeteorologicalInfos 全体のトラックを唯一の台風に紐付ける。
-    # 将来的に複数台風が1電文に含まれる場合は予報エントリへの typhoon_id 付与が必要。
+    # VPTW60〜VPTW69 は各電文が1台風に対応する（複数台風同時発生時は電文番号が異なる）。
+    # MeteorologicalInfos 全体のトラックを当該電文の唯一の台風に紐付ける。
     track = _extract_track(meteorological_infos)
 
     for info in meteorological_infos.findall("MeteorologicalInfo"):
