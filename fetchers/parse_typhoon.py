@@ -1,7 +1,8 @@
-"""VPTW60 台風解析・予報情報 パーサー。"""
+"""VPTW60-VPTW69 台風解析・予報情報 パーサー。"""
 import logging
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -110,7 +111,7 @@ def _extract_position(kind_map: dict[str, etree._Element]) -> tuple[float | None
     JMA VPTW60 では Type="中心" 配下の CenterPart/Coordinate に実況位置が入る。
     """
     for key, kind in kind_map.items():
-        if "位置" in key or "中心" in key:
+        if "位置" in key or key == "中心":
             coord_text = find_text(kind, "Property/CenterPart/Coordinate")
             if coord_text:
                 return _parse_coordinate(coord_text)
@@ -133,7 +134,7 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
 
         for kind in item.findall("Kind"):
             type_text = find_text(kind, "Property/Type")
-            if not type_text or ("位置" not in type_text and "中心" not in type_text):
+            if not type_text or ("位置" not in type_text and type_text != "中心"):
                 continue
             # 実況: CenterPart/Coordinate、予報: ProbabilityCircle/BasePoint（type="中心位置（度）"）
             coord_text = find_text(kind, "Property/CenterPart/Coordinate")
@@ -156,8 +157,8 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
                     r_km = int(radius_el.text.strip())
                     if unit.lower() in ("nm", "海里"):
                         r_km = round(r_km * 1.852)
-                    if "70" in radius_type or "７０" in radius_type:
-                        entry["forecast_radius_70"] = r_km
+                    if "70" in unicodedata.normalize("NFKC", radius_type):
+                        entry["forecast_radius_70"] = max(entry.get("forecast_radius_70", 0), r_km)
                     else:
                         entry.setdefault("forecast_radius", r_km)
                 except (ValueError, AttributeError):
@@ -177,8 +178,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
         logger.warning("MeteorologicalInfos が見つかりません")
         return 0
 
-    # VPTW60 は1電文1台風のため、MeteorologicalInfos 全体のトラックを唯一の台風に紐付ける。
-    # 将来的に複数台風が1電文に含まれる場合は予報エントリへの typhoon_id 付与が必要。
+    # VPTW60〜VPTW69 は各電文が1台風に対応する（複数台風同時発生時は電文番号が異なる）。
+    # MeteorologicalInfos 全体のトラックを当該電文の唯一の台風に紐付ける。
     track = _extract_track(meteorological_infos)
 
     for info in meteorological_infos.findall("MeteorologicalInfo"):
