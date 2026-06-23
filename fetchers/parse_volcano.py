@@ -70,7 +70,6 @@ def handle_vfvo50(root: etree._Element, reported_at: str, db_path=None) -> int:
             "噴火警報保存: volcano=%s level=%s type=%s", volcano_name, alert_level, alert_type
         )
         total += 1
-        break  # 1電文1火山
 
     return total
 
@@ -99,8 +98,8 @@ def handle_vfvo52(root: etree._Element, reported_at: str, db_path=None) -> int:
     desc_parts = [f"種別: {kind_name}", f"観測時刻: {event_time}"]
     obs = root.find(".//VolcanoObservation")
     if obs is not None:
-        height = find_text(obs, "ColorPlume/PlumeHeightAboveCrater")
-        direction = find_text(obs, "ColorPlume/PlumeDirection")
+        height = find_text(obs, "ColorPlume/PlumeHeightAboveCrater", "WhitePlume/PlumeHeightAboveCrater")
+        direction = find_text(obs, "ColorPlume/PlumeDirection", "WhitePlume/PlumeDirection")
         other = find_text(obs, "OtherObservation")
         if height:
             desc_parts.append(f"噴煙高度: 火口上{height}m")
