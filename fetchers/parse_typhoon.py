@@ -2,7 +2,6 @@
 import logging
 import re
 import sys
-import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -149,18 +148,14 @@ def _extract_track(meteorological_infos: etree._Element) -> list[dict]:
             if lat is None or lon is None:
                 continue
             entry: dict = {"kind": dt_type, "at": dt_text, "lat": lat, "lon": lon}
-            # 予報円半径（ProbabilityCircle/Axes/Axis/Radius、単位は "海里" または "km"）
+            # 予報円半径（ProbabilityCircle は定義上 70% 確率円のため直接 forecast_radius_70 に格納）
             for radius_el in kind.findall("Property/CenterPart/ProbabilityCircle/Axes/Axis/Radius"):
-                radius_type = radius_el.get("type", "")
                 unit = radius_el.get("unit", "km")
                 try:
                     r_km = int(radius_el.text.strip())
                     if unit.lower() in ("nm", "海里"):
                         r_km = round(r_km * 1.852)
-                    if "70" in unicodedata.normalize("NFKC", radius_type):
-                        entry["forecast_radius_70"] = max(entry.get("forecast_radius_70", 0), r_km)
-                    else:
-                        entry.setdefault("forecast_radius", r_km)
+                    entry["forecast_radius_70"] = max(entry.get("forecast_radius_70", 0), r_km)
                 except (ValueError, AttributeError):
                     pass
             track.append(entry)
