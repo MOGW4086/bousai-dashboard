@@ -41,9 +41,9 @@ const TRACK_COLORS = ['#cc0000', '#ff6600', '#0066cc', '#006600', '#660099'];
 const allPoints = [];
 
 // 予報時刻ごとのラベル・色・塗り透明度（全角数字キー）
-const FORECAST_LABELS    = {'２４':'+24h','４５':'+45h','６９':'+69h','９３':'+93h','１１７':'+117h'};
-const FORECAST_COLORS    = {'２４':'#0055ff','４５':'#3388ff','６９':'#33bbcc','９３':'#44cc88','１１７':'#99aaaa'};
-const FORECAST_OPACITIES = {'２４':0.15,'４５':0.11,'６９':0.08,'９３':0.05,'１１７':0.03};
+const FORECAST_LABELS    = {'２４':'+24h','４８':'+48h','７２':'+72h','９６':'+96h','１２０':'+120h'};
+const FORECAST_COLORS    = {'２４':'#0055ff','４８':'#3388ff','７２':'#33bbcc','９６':'#44cc88','１２０':'#99aaaa'};
+const FORECAST_OPACITIES = {'２４':0.15,'４８':0.11,'７２':0.08,'９６':0.05,'１２０':0.03};
 
 function forecastKey(kind) {
     const m = (kind || '').match(/([０-９]+)時間後/);
@@ -54,7 +54,7 @@ function forecastKey(kind) {
 function formatJST(atStr) {
     if (!atStr) return '';
     const m = atStr.match(/\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    return m ? `${parseInt(m[1])}/${parseInt(m[2])} ${m[3]}:${m[4]} JST` : escapeHtml(atStr);
+    return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)} ${m[3]}:${m[4]} JST` : escapeHtml(atStr);
 }
 
 typhoons.forEach((t, idx) => {
@@ -91,7 +91,7 @@ typhoons.forEach((t, idx) => {
 
         const kindLabel = isCurrent
             ? '実況'
-            : (fKey ? `${FORECAST_LABELS[fKey]} ${formatJST(p.at)}` : escapeHtml(p.at || ''));
+            : (fKey ? `${FORECAST_LABELS[fKey] || fKey} ${formatJST(p.at)}` : escapeHtml(p.at || ''));
         const fRadius = p.forecast_radius || p.forecast_radius_70;
         marker.bindPopup(
             `<b>${escapeHtml(t.name || t.typhoon_id)}</b><br>` +
