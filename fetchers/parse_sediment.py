@@ -33,10 +33,10 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             area_name = (area_el.findtext("Name") or "").strip()
             area_code = (area_el.findtext("Code") or "").strip()
 
-            if area_code:
-                pref = get_pref_code_from_area_code(area_code)
-                if pref:
-                    affected_prefs.add(pref)
+            pref = get_pref_code_from_area_code(area_code) if area_code else None
+            if not pref:
+                continue
+            affected_prefs.add(pref)
 
             for kind in item.findall("Kind"):
                 # VXWW50では Kind>Name が "警戒" = 警戒情報発令中、"なし" = 対象外
