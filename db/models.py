@@ -227,13 +227,14 @@ def save_sediment_warnings(
     from scheduler.area_master import get_pref_code_from_area_code
     with get_conn(db_path) as conn:
         # 既存エントリ削除（同一トランザクション内）
+        # SELECT はループ外で1回だけ実行し、都道府県ごとにフィルタして DELETE する
+        all_rows = conn.execute(
+            "SELECT DISTINCT area_code FROM warnings WHERE warning_type = ?",
+            (warning_type,),
+        ).fetchall()
         for pref in pref_codes:
-            rows = conn.execute(
-                "SELECT DISTINCT area_code FROM warnings WHERE warning_type = ?",
-                (warning_type,),
-            ).fetchall()
             area_codes = [
-                r["area_code"] for r in rows
+                r["area_code"] for r in all_rows
                 if get_pref_code_from_area_code(r["area_code"]) == pref
             ]
             if area_codes:
