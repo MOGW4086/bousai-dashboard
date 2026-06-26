@@ -205,6 +205,63 @@ def delete_warnings_by_pref_and_type(pref_code: str, warning_type: str, db_path:
             )
 
 
+def save_sediment_warnings(
+    pref_codes: set[str],
+    alerts: list[tuple[str, str]],
+    warning_type: str,
+    reported_at: str,
+    db_path: str | None = None,
+) -> int:
+    """土砂災害等の警戒情報を単一トランザクションで削除・挿入する。
+
+    Args:
+        pref_codes: 削除対象の都道府県コードセット。
+        alerts: 挿入対象の (area_code, area_name) タプルリスト。
+        warning_type: 警報種別（例: "土砂災害警戒情報"）。
+        reported_at: 報告日時文字列。
+        db_path: DBパス。Noneの場合はConfig.DB_PATHを使用。
+
+    Returns:
+        挿入した件数。
+    """
+    from scheduler.area_master import get_pref_code_from_area_code
+    with get_conn(db_path) as conn:
+        # 既存エントリ削除（同一トランザクション内）
+        # 対象 area_code を一括特定してチャンク DELETE（SQLite パラメータ上限 999 対応）
+        all_rows = conn.execute(
+            "SELECT DISTINCT area_code FROM warnings WHERE warning_type = ?",
+            (warning_type,),
+        ).fetchall()
+        to_delete = [
+            r["area_code"] for r in all_rows
+            if get_pref_code_from_area_code(r["area_code"]) in pref_codes
+        ]
+        chunk_size = 998  # warning_type の 1 パラメータ分を引いて SQLite 上限(999)に収める
+        for i in range(0, len(to_delete), chunk_size):
+            chunk = to_delete[i : i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
+            conn.execute(
+                f"DELETE FROM warnings WHERE warning_type = ? AND area_code IN ({placeholders})",
+                (warning_type, *chunk),
+            )
+        # 新エントリ一括挿入（同一トランザクション内）
+        if alerts:
+            conn.executemany(
+                """
+                INSERT INTO warnings (area_code, area_name, warning_type, level, reported_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(area_code, warning_type)
+                DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
+                              reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
+                """,
+                [
+                    (area_code, area_name, warning_type, "special_warning", reported_at)
+                    for area_code, area_name in alerts
+                ],
+            )
+        return len(alerts)
+
+
 def get_active_warnings(db_path: str | None = None) -> list[dict]:
     """現在の警報・注意報一覧を返す。"""
     with get_conn(db_path) as conn:
