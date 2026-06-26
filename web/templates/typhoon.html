@@ -2,6 +2,19 @@
 {% block title %}台風情報 - 防災ダッシュボード{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+.forecast-label {
+    background: rgba(255,255,255,0.85);
+    border: none;
+    box-shadow: none;
+    font-size: 0.72rem;
+    font-weight: bold;
+    padding: 1px 4px;
+    color: #333;
+    white-space: nowrap;
+}
+.forecast-label::before { display: none; }
+</style>
 {% endblock %}
 {% block content %}
 <h2>台風情報</h2>
@@ -27,6 +40,23 @@ L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
 const TRACK_COLORS = ['#cc0000', '#ff6600', '#0066cc', '#006600', '#660099'];
 const allPoints = [];
 
+// 予報時刻ごとのラベル・色・塗り透明度（全角数字キー）
+const FORECAST_LABELS    = {'２４':'+24h','４５':'+45h','６９':'+69h','９３':'+93h','１１７':'+117h'};
+const FORECAST_COLORS    = {'２４':'#0055ff','４５':'#3388ff','６９':'#33bbcc','９３':'#44cc88','１１７':'#99aaaa'};
+const FORECAST_OPACITIES = {'２４':0.15,'４５':0.11,'６９':0.08,'９３':0.05,'１１７':0.03};
+
+function forecastKey(kind) {
+    const m = (kind || '').match(/([０-９]+)時間後/);
+    return m ? m[1] : null;
+}
+
+// ISO 8601 文字列（+09:00付き）から "M/D HH:MM JST" を抽出（タイムゾーン変換なし）
+function formatJST(atStr) {
+    if (!atStr) return '';
+    const m = atStr.match(/\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    return m ? `${parseInt(m[1])}/${parseInt(m[2])} ${m[3]}:${m[4]} JST` : escapeHtml(atStr);
+}
+
 typhoons.forEach((t, idx) => {
     const color = TRACK_COLORS[idx % TRACK_COLORS.length];
     const track = t.track || [];
@@ -43,12 +73,25 @@ typhoons.forEach((t, idx) => {
     track.forEach(p => {
         if (p.lat == null || p.lon == null) return;
         const isCurrent = p.kind === '実況';
+        const fKey = forecastKey(p.kind);
+        // 予報円のみ時刻色分け。マーカー本体は台風識別色（color）を維持する
+        const circleColor = fKey ? (FORECAST_COLORS[fKey] || color) : color;
         const radius = isCurrent ? 8 : 5;
         const fillColor = isCurrent ? color : '#ffffff';
         const marker = L.circleMarker([p.lat, p.lon], {
             radius, color, fillColor, fillOpacity: isCurrent ? 0.9 : 0.7, weight: 2
         });
-        const kindLabel = isCurrent ? '実況' : `予報 ${escapeHtml(p.at || '')}`;
+
+        // 予報ポイントには時刻ラベルを常時表示
+        if (!isCurrent && fKey) {
+            marker.bindTooltip(FORECAST_LABELS[fKey] || fKey, {
+                permanent: true, direction: 'top', className: 'forecast-label'
+            });
+        }
+
+        const kindLabel = isCurrent
+            ? '実況'
+            : (fKey ? `${FORECAST_LABELS[fKey]} ${formatJST(p.at)}` : escapeHtml(p.at || ''));
         const fRadius = p.forecast_radius || p.forecast_radius_70;
         marker.bindPopup(
             `<b>${escapeHtml(t.name || t.typhoon_id)}</b><br>` +
@@ -58,11 +101,13 @@ typhoons.forEach((t, idx) => {
         );
         marker.addTo(map);
 
-        // 予報円（予報ポイントのみ）
+        // 予報円（予報ポイントのみ）- 時刻ごとに色・透明度を変える
         if (!isCurrent && fRadius) {
             L.circle([p.lat, p.lon], {
                 radius: fRadius * 1000,
-                color, fillColor: color, fillOpacity: 0.05, weight: 1, dashArray: '4'
+                color: circleColor, fillColor: circleColor,
+                fillOpacity: fKey ? (FORECAST_OPACITIES[fKey] || 0.05) : 0.05,
+                weight: 1, dashArray: '4'
             }).addTo(map);
         }
     });
