@@ -227,25 +227,26 @@ def save_sediment_warnings(
     from scheduler.area_master import get_pref_code_from_area_code
     with get_conn(db_path) as conn:
         # 既存エントリ削除（同一トランザクション内）
-        # SELECT はループ外で1回だけ実行し、都道府県ごとにフィルタして DELETE する
+        # 対象 area_code を一括特定してチャンク DELETE（SQLite パラメータ上限 999 対応）
         all_rows = conn.execute(
             "SELECT DISTINCT area_code FROM warnings WHERE warning_type = ?",
             (warning_type,),
         ).fetchall()
-        for pref in pref_codes:
-            area_codes = [
-                r["area_code"] for r in all_rows
-                if get_pref_code_from_area_code(r["area_code"]) == pref
-            ]
-            if area_codes:
-                placeholders = ",".join("?" * len(area_codes))
-                conn.execute(
-                    f"DELETE FROM warnings WHERE warning_type = ? AND area_code IN ({placeholders})",
-                    (warning_type, *area_codes),
-                )
-        # 新エントリ挿入（同一トランザクション内）
-        for area_code, area_name in alerts:
+        to_delete = [
+            r["area_code"] for r in all_rows
+            if get_pref_code_from_area_code(r["area_code"]) in pref_codes
+        ]
+        chunk_size = 999
+        for i in range(0, len(to_delete), chunk_size):
+            chunk = to_delete[i : i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
             conn.execute(
+                f"DELETE FROM warnings WHERE warning_type = ? AND area_code IN ({placeholders})",
+                (warning_type, *chunk),
+            )
+        # 新エントリ一括挿入（同一トランザクション内）
+        if alerts:
+            conn.executemany(
                 """
                 INSERT INTO warnings (area_code, area_name, warning_type, level, reported_at)
                 VALUES (?, ?, ?, ?, ?)
@@ -253,7 +254,10 @@ def save_sediment_warnings(
                 DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
                               reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
                 """,
-                (area_code, area_name, warning_type, "special_warning", reported_at),
+                [
+                    (area_code, area_name, warning_type, "special_warning", reported_at)
+                    for area_code, area_name in alerts
+                ],
             )
         return len(alerts)
 
