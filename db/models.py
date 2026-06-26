@@ -236,7 +236,7 @@ def save_sediment_warnings(
             r["area_code"] for r in all_rows
             if get_pref_code_from_area_code(r["area_code"]) in pref_codes
         ]
-        chunk_size = 999
+        chunk_size = 998  # warning_type の 1 パラメータ分を引いて SQLite 上限(999)に収める
         for i in range(0, len(to_delete), chunk_size):
             chunk = to_delete[i : i + chunk_size]
             placeholders = ",".join("?" * len(chunk))
