@@ -41,6 +41,7 @@ _AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VXWW50"}
 def _area_code_from_url(url: str) -> str:
     """URLのファイル名末尾の数値部分（都道府県コード相当）を取得。
     例: 20260603210250_0_VPWW53_140000.xml → "140000"
+         20260626065305_0_VXWW50_340000.xml → "340000"
     """
     filename = url.rsplit("/", 1)[-1]
     parts = filename.replace(".xml", "").split("_")
