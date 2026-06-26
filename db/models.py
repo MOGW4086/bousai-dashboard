@@ -183,6 +183,28 @@ def delete_warnings_by_type(warning_type: str, db_path: str | None = None) -> No
         )
 
 
+def delete_warnings_by_pref_and_type(pref_code: str, warning_type: str, db_path: str | None = None) -> None:
+    """指定都道府県・警報種別の警報を削除する（VXWW50等の最新化前の掃除用）。"""
+    if not pref_code or len(pref_code) != 6 or not pref_code.isdigit():
+        return
+    from scheduler.area_master import get_pref_code_from_area_code
+    with get_conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT area_code FROM warnings WHERE warning_type = ?",
+            (warning_type,),
+        ).fetchall()
+        area_codes = [
+            r["area_code"] for r in rows
+            if get_pref_code_from_area_code(r["area_code"]) == pref_code
+        ]
+        if area_codes:
+            placeholders = ",".join("?" * len(area_codes))
+            conn.execute(
+                f"DELETE FROM warnings WHERE warning_type = ? AND area_code IN ({placeholders})",
+                (warning_type, *area_codes),
+            )
+
+
 def get_active_warnings(db_path: str | None = None) -> list[dict]:
     """現在の警報・注意報一覧を返す。"""
     with get_conn(db_path) as conn:

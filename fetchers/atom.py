@@ -34,7 +34,8 @@ HANDLERS = {
 
 # 同一都道府県の最新1件のみ処理する電文種別（地域フィルタが必要なもの）
 # VTSE41 はエリアコード 010000 が全エリア共通のため重複排除対象外とする
-_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53"}
+# VXWW50 は一県全域を網羅するため、古い電文で最新状態が上書きされないよう最新1件のみ処理する
+_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VXWW50"}
 
 
 def _area_code_from_url(url: str) -> str:
