@@ -44,6 +44,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
                 if kind_name != "警戒":
                     continue
                 alerts.append((area_code, area_name))
+                break
 
     # 2パス目: 単一トランザクションで削除・挿入
     saved = save_sediment_warnings(
