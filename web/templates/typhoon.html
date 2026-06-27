@@ -40,14 +40,13 @@ L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
 const TRACK_COLORS = ['#cc0000', '#ff6600', '#0066cc', '#006600', '#660099'];
 const allPoints = [];
 
-// 予報時刻ごとのラベル・色・塗り透明度（全角数字キー）
-const FORECAST_LABELS    = {'２４':'+24h','４８':'+48h','７２':'+72h','９６':'+96h','１２０':'+120h'};
-const FORECAST_COLORS    = {'２４':'#0055ff','４８':'#3388ff','７２':'#33bbcc','９６':'#44cc88','１２０':'#99aaaa'};
-const FORECAST_OPACITIES = {'２４':0.15,'４８':0.11,'７２':0.08,'９６':0.05,'１２０':0.03};
+// 予報時刻ごとの色・塗り透明度（半角数字キー）
+const FORECAST_COLORS    = {'24':'#0055ff','48':'#3388ff','72':'#33bbcc','96':'#44cc88','120':'#99aaaa'};
+const FORECAST_OPACITIES = {'24':0.15,'48':0.11,'72':0.08,'96':0.05,'120':0.03};
 
 function forecastKey(kind) {
     const m = (kind || '').match(/([０-９]+)時間後/);
-    return m ? m[1] : null;
+    return m ? m[1].normalize('NFKC') : null;
 }
 
 // UTC DateTime文字列（末尾Z等）をJSTに変換して "M/D HH:MM JST" 形式で返す
@@ -94,14 +93,14 @@ typhoons.forEach((t, idx) => {
 
         // 予報ポイントには時刻ラベルを常時表示
         if (!isCurrent && fKey) {
-            marker.bindTooltip(FORECAST_LABELS[fKey] || fKey, {
+            marker.bindTooltip('+' + fKey + 'h', {
                 permanent: true, direction: 'top', className: 'forecast-label'
             });
         }
 
         const kindLabel = isCurrent
             ? '実況'
-            : (fKey ? `${FORECAST_LABELS[fKey] || fKey} ${formatJST(p.at)}` : escapeHtml(p.at || ''));
+            : (fKey ? '+' + fKey + 'h ' + formatJST(p.at) : escapeHtml(p.at || ''));
         const fRadius = p.forecast_radius || p.forecast_radius_70;
         marker.bindPopup(
             `<b>${escapeHtml(t.name || t.typhoon_id)}</b><br>` +
