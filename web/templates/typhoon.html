@@ -41,11 +41,11 @@ const TRACK_COLORS = ['#cc0000', '#ff6600', '#0066cc', '#006600', '#660099'];
 const allPoints = [];
 
 // 予報時刻ごとの色・塗り透明度（半角数字キー）
-const FORECAST_COLORS    = {'24':'#0055ff','48':'#3388ff','72':'#33bbcc','96':'#44cc88','120':'#99aaaa'};
-const FORECAST_OPACITIES = {'24':0.15,'48':0.11,'72':0.08,'96':0.05,'120':0.03};
+const FORECAST_COLORS    = {'12':'#0055ff','24':'#0055ff','36':'#3388ff','48':'#3388ff','60':'#33bbcc','72':'#33bbcc','84':'#44cc88','96':'#44cc88','108':'#99aaaa','120':'#99aaaa'};
+const FORECAST_OPACITIES = {'12':0.15,'24':0.15,'36':0.11,'48':0.11,'60':0.08,'72':0.08,'84':0.05,'96':0.05,'108':0.03,'120':0.03};
 
 function forecastKey(kind) {
-    const m = (kind || '').match(/([０-９]+)時間後/);
+    const m = (kind || '').match(/([0-9０-９]+)時間後/);
     return m ? m[1].normalize('NFKC') : null;
 }
 
