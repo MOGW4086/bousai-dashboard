@@ -50,11 +50,21 @@ function forecastKey(kind) {
     return m ? m[1] : null;
 }
 
-// ISO 8601 文字列（+09:00付き）から "M/D HH:MM JST" を抽出（タイムゾーン変換なし）
+// UTC DateTime文字列（末尾Z等）をJSTに変換して "M/D HH:MM JST" 形式で返す
 function formatJST(atStr) {
     if (!atStr) return '';
-    const m = atStr.match(/\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)} ${m[3]}:${m[4]} JST` : escapeHtml(atStr);
+    try {
+        const date = new Date(atStr);
+        if (isNaN(date.getTime())) return escapeHtml(atStr);
+        const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+        const m = jstDate.getUTCMonth() + 1;
+        const d = jstDate.getUTCDate();
+        const h = String(jstDate.getUTCHours()).padStart(2, '0');
+        const min = String(jstDate.getUTCMinutes()).padStart(2, '0');
+        return m + '/' + d + ' ' + h + ':' + min + ' JST';
+    } catch (e) {
+        return escapeHtml(atStr);
+    }
 }
 
 typhoons.forEach((t, idx) => {
