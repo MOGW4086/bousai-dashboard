@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import upsert_warning, delete_warning, delete_warnings_by_area, delete_warnings_by_pref
+from db.models import upsert_warning, delete_warning, delete_warnings_by_area
 from fetchers.xml_utils import find_text
 from scheduler.area_master import get_pref_code_from_area_code
 
@@ -26,9 +26,9 @@ _R06_CLEANUP_TYPES: dict[str, list[str]] = {
     "VPWW56": ["大雨特別警報（土砂災害）", "大雨警報（土砂災害）", "大雨注意報（土砂災害）"],
     "VPWW57": ["高潮特別警報", "高潮警報", "高潮注意報"],
     "VPWW58": ["洪水警報", "洪水注意報"],
-    "VPWW59": ["暴風特別警報", "暴風警報", "暴風注意報"],
+    "VPWW59": ["暴風特別警報", "暴風警報", "強風注意報"],
     "VPWW60": ["大雪特別警報", "大雪警報", "大雪注意報"],
-    "VPWW61": ["暴風雪特別警報", "暴風雪警報", "暴風雪注意報"],
+    "VPWW61": ["暴風雪特別警報", "暴風雪警報", "風雪注意報"],
 }
 
 # VPWW55/56 の衝突防止のために warning_type に付与するサフィックス

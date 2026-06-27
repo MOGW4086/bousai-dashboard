@@ -147,7 +147,7 @@ def upsert_warning(
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(area_code, warning_type)
             DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
-                          alert_level=excluded.alert_level,
+                          alert_level=COALESCE(excluded.alert_level, warnings.alert_level),
                           reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
             """,
             (area_code, area_name, warning_type, level, alert_level, reported_at),
