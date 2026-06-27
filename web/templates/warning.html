@@ -20,7 +20,12 @@
       <tr>
         <td>{{ w.area_name or w.area_code }}</td>
         <td>{{ w.warning_type }}</td>
-        <td>{% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}</td>
+        <td>
+          {% if w.level %}<span class="badge badge-{{ w.level | lower }}">{{ w.level | level_ja }}</span>{% else %}-{% endif %}
+          {% if w.alert_level is not none %}
+            <span class="badge badge-alert-level{% if w.alert_level|int >= 5 %} badge-alert-level-critical{% endif %}">Lv.{{ w.alert_level }}</span>
+          {% endif %}
+        </td>
         <td>{{ w.reported_at or '-' }}</td>
       </tr>
       {% endfor %}

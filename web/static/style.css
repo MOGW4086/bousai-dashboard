@@ -183,6 +183,18 @@ h3 {
   color: #fff;
 }
 
+.badge-alert-level {
+  background: #37474f;
+  color: #fff;
+  margin-left: 0.3em;
+}
+
+/* .badge-alert-level と組み合わせて使用する（Lv.5 以上のクリティカル強調） */
+.badge-alert-level-critical {
+  background: #b71c1c;
+  color: #fff;
+}
+
 
 /* ─── 震度バッジ ───────────────────────────────────────────── */
 .scale-badge {

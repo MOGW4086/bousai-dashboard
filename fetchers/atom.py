@@ -19,6 +19,13 @@ FEEDS = {
 HANDLERS = {
     "VXSE53": parse_quake.handle,
     "VPWW53": parse_warning.handle,
+    # VPWW55〜61: R06 形式 警報・注意報（警報種別ごとに分割・警戒レベル付き）
+    # VPWW55: 大雨（浸水害）, VPWW56: 大雨（土砂災害）, VPWW57: 高潮
+    # VPWW58: 洪水, VPWW59: 暴風, VPWW60: 大雪, VPWW61: 暴風雪
+    **{
+        f"VPWW{i}": (lambda dt: lambda root, reported_at, **kw: parse_warning.handle_r06(root, reported_at, doc_type=dt, **kw))(f"VPWW{i}")
+        for i in range(55, 62)
+    },
     "VXWW50": parse_sediment.handle,
     "VFVO50": parse_volcano.handle_vfvo50,
     "VFVO52": parse_volcano.handle_vfvo52,
@@ -35,7 +42,8 @@ HANDLERS = {
 # 同一都道府県の最新1件のみ処理する電文種別（地域フィルタが必要なもの）
 # VTSE41 はエリアコード 010000 が全エリア共通のため重複排除対象外とする
 # VXWW50 は一県全域を網羅するため、古い電文で最新状態が上書きされないよう最新1件のみ処理する
-_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VXWW50"}
+# VPWW55〜61 も警報種別ごとに地域単位で配信されるため重複排除対象に追加する
+_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VXWW50"} | {f"VPWW{i}" for i in range(55, 62)}
 
 
 def _area_code_from_url(url: str) -> str:

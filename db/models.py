@@ -136,19 +136,39 @@ def upsert_warning(
     warning_type: str,
     level: str,
     reported_at: str | None,
+    alert_level: int | None = None,
     db_path: str | None = None,
 ) -> None:
-    """警報・注意報をupsertする。"""
+    """警報・注意報をupsertする。alert_level は R06 形式電文のレベル値（None = 旧形式）。"""
     with get_conn(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO warnings (area_code, area_name, warning_type, level, reported_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO warnings (area_code, area_name, warning_type, level, alert_level, reported_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(area_code, warning_type)
             DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
+                          alert_level=excluded.alert_level,
                           reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
             """,
-            (area_code, area_name, warning_type, level, reported_at),
+            (area_code, area_name, warning_type, level, alert_level, reported_at),
+        )
+
+
+def delete_warning(area_code: str, warning_type: str, db_path: str | None = None) -> None:
+    """指定エリアコード・警報種別の警報を削除する（解除電文用）。"""
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "DELETE FROM warnings WHERE area_code = ? AND warning_type = ?",
+            (area_code, warning_type),
+        )
+
+
+def delete_warnings_by_area(area_code: str, db_path: str | None = None) -> None:
+    """指定エリアコードの全警報を削除する（「発表警報・注意報はなし」時）。"""
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "DELETE FROM warnings WHERE area_code = ?",
+            (area_code,),
         )
 
 
