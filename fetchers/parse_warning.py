@@ -20,15 +20,21 @@ logger = logging.getLogger(__name__)
 # "レベル3大雨注意報" のようなプレフィックスを抽出する正規表現
 _LEVEL_RE = re.compile(r"^レベル(\d+)\s*")
 
-# VPWW55〜61 の R06 電文種別 → 対応する警報種別名（フォールバック用）
-_R06_TYPE_MAP = {
-    "VPWW55": "大雨（浸水害）",
-    "VPWW56": "大雨（土砂災害）",
-    "VPWW57": "高潮",
-    "VPWW58": "洪水",
-    "VPWW59": "暴風",
-    "VPWW60": "大雪",
-    "VPWW61": "暴風雪",
+# 各 R06 電文種別に対応する、解除・クリア時に削除対象とする警報種別リスト
+_R06_CLEANUP_TYPES: dict[str, list[str]] = {
+    "VPWW55": ["大雨特別警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）"],
+    "VPWW56": ["大雨特別警報（土砂災害）", "大雨警報（土砂災害）", "大雨注意報（土砂災害）"],
+    "VPWW57": ["高潮特別警報", "高潮警報", "高潮注意報"],
+    "VPWW58": ["洪水警報", "洪水注意報"],
+    "VPWW59": ["暴風特別警報", "暴風警報", "暴風注意報"],
+    "VPWW60": ["大雪特別警報", "大雪警報", "大雪注意報"],
+    "VPWW61": ["暴風雪特別警報", "暴風雪警報", "暴風雪注意報"],
+}
+
+# VPWW55/56 の衝突防止のために warning_type に付与するサフィックス
+_R06_SUFFIX_MAP: dict[str, str] = {
+    "VPWW55": "（浸水害）",
+    "VPWW56": "（土砂災害）",
 }
 
 
@@ -176,31 +182,38 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
 
         kinds = item.findall("Kind")
         if not kinds:
-            # Kind なし = 発令なし → 電文種別に対応するデフォルト警報種別のみ削除
-            fallback = _R06_TYPE_MAP.get(doc_type)
-            if fallback:
-                delete_warning(area_code, fallback, db_path=db_path)
+            # Kind なし = 発令なし → 電文種別に対応する全警報種別を削除
+            cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
+            if cleanup_types:
+                for wt in cleanup_types:
+                    delete_warning(area_code, wt, db_path=db_path)
             else:
-                logger.warning("[%s] _R06_TYPE_MAP に未登録の doc_type (area=%s)", doc_type, area_code)
+                logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s)", doc_type, area_code)
             continue
 
         for kind in kinds:
             kind_name = (kind.findtext("Name") or "").strip()
             status = (kind.findtext("Status") or "").strip()
 
-            # "なし" パターン → 電文種別に対応する警報種別のみ削除
+            # "なし" パターン → 電文種別に対応する全警報種別を削除
             if "なし" in kind_name:
-                fallback = _R06_TYPE_MAP.get(doc_type)
-                if fallback:
-                    delete_warning(area_code, fallback, db_path=db_path)
+                cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
+                if cleanup_types:
+                    for wt in cleanup_types:
+                        delete_warning(area_code, wt, db_path=db_path)
                 else:
-                    logger.warning("[%s] _R06_TYPE_MAP に未登録の doc_type (area=%s, kind_name=%s)", doc_type, area_code, kind_name)
+                    logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s, kind_name=%s)", doc_type, area_code, kind_name)
                 break
 
             # R06 では Kind/Name にレベルプレフィックスが必ず付く
             alert_level, warning_type = _extract_alert_level(kind_name)
             if not warning_type:
                 warning_type = kind_name
+
+            # VPWW55/56 の衝突防止: warning_type にサフィックスを付与
+            suffix = _R06_SUFFIX_MAP.get(doc_type, "")
+            if suffix and not warning_type.endswith(suffix):
+                warning_type += suffix
 
             if status == "解除":
                 delete_warning(area_code, warning_type, db_path=db_path)
