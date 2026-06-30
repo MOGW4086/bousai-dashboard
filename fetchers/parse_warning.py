@@ -25,10 +25,10 @@ _R06_CLEANUP_TYPES: dict[str, list[str]] = {
     "VPWW55": ["大雨特別警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）"],
     "VPWW56": ["大雨特別警報（土砂災害）", "大雨警報（土砂災害）", "大雨注意報（土砂災害）"],
     "VPWW57": ["高潮特別警報", "高潮警報", "高潮注意報"],
-    "VPWW58": ["洪水警報", "洪水注意報"],
-    "VPWW59": ["暴風特別警報", "暴風警報", "強風注意報"],
+    "VPWW58": ["暴風特別警報", "暴風警報", "強風注意報", "暴風雪特別警報", "暴風雪警報", "風雪注意報"],
+    "VPWW59": ["波浪特別警報", "波浪警報", "波浪注意報"],
     "VPWW60": ["大雪特別警報", "大雪警報", "大雪注意報"],
-    "VPWW61": ["暴風雪特別警報", "暴風雪警報", "風雪注意報"],
+    "VPWW61": ["雷注意報", "融雪注意報", "濃霧注意報", "乾燥注意報", "なだれ注意報", "低温注意報", "霜注意報", "着氷注意報", "着雪注意報"],
 }
 
 # VPWW55/56 の衝突防止のために warning_type に付与するサフィックス
@@ -42,21 +42,12 @@ _R06_DB_WARNING_TYPES: list[str] = [
     "大雨特別警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）",
     "大雨特別警報（土砂災害）", "大雨警報（土砂災害）", "大雨注意報（土砂災害）",
     "高潮特別警報", "高潮警報", "高潮注意報",
-    "洪水警報", "洪水注意報",
     "暴風特別警報", "暴風警報", "強風注意報",
-    "大雪特別警報", "大雪警報", "大雪注意報",
     "暴風雪特別警報", "暴風雪警報", "風雪注意報",
+    "波浪特別警報", "波浪警報", "波浪注意報",
+    "大雪特別警報", "大雪警報", "大雪注意報",
+    "雷注意報", "融雪注意報", "濃霧注意報", "乾燥注意報", "なだれ注意報", "低温注意報", "霜注意報", "着氷注意報", "着雪注意報",
 ]
-
-# R06で管理される電文上の元の警報種別名（VPWW53との重複チェック用）
-_R06_WARNING_TYPES: frozenset[str] = frozenset({
-    "大雨特別警報", "大雨警報", "大雨注意報",
-    "高潮特別警報", "高潮警報", "高潮注意報",
-    "洪水警報", "洪水注意報",
-    "暴風特別警報", "暴風警報", "強風注意報",
-    "大雪特別警報", "大雪警報", "大雪注意報",
-    "暴風雪特別警報", "暴風雪警報", "風雪注意報",
-})
 
 
 def _level(warning_type: str) -> str:
@@ -133,23 +124,35 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
             delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
             continue
 
+        # "発表警報・注意報はなし" パターン: Name に "なし" を含む
+        has_none = any("なし" in (kind.findtext("Name") or "") for kind in kinds)
+        if has_none:
+            delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
+            continue
+
+        # 今回の電文でアクティブ（発表・継続）な警報種別を収集
+        active_types: list[str] = []
+        for kind in kinds:
+            kind_name = (kind.findtext("Name") or "").strip()
+            status = (kind.findtext("Status") or "").strip()
+            if status in ("発表", "継続"):
+                _, warning_type = _extract_alert_level(kind_name)
+                if not warning_type:
+                    warning_type = kind_name
+                active_types.append(warning_type)
+
+        # 今回アクティブでない、かつR06対象外の警報をDBから一括削除（ゴースト警報の防止）
+        delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES + active_types, db_path=db_path)
+
         for kind in kinds:
             kind_name = (kind.findtext("Name") or "").strip()
             status = (kind.findtext("Status") or "").strip()
 
-            # "発表警報・注意報はなし" パターン: Name に "なし" を含む
-            if "なし" in kind_name:
-                delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
-                break
-
-            # VPWW53 の Kind/Name にはレベルプレフィックスが付く場合がある
             alert_level, warning_type = _extract_alert_level(kind_name)
             if not warning_type:
                 warning_type = kind_name
 
-            if status == "解除":
-                delete_warning(area_code, warning_type, db_path=db_path)
-            elif status in ("発表", "継続"):
+            if status in ("発表", "継続"):
                 level = _level(warning_type)
                 upsert_warning(
                     area_code=area_code,
@@ -161,6 +164,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
                     db_path=db_path,
                 )
                 saved += 1
+            elif status == "解除":
+                delete_warning(area_code, warning_type, db_path=db_path)
             else:
                 logger.debug("未知の Status '%s' (area=%s, type=%s)", status, area_code, warning_type)
 
