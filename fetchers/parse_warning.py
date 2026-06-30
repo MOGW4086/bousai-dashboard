@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import upsert_warning, delete_warning, delete_warnings_by_area
+from db.models import upsert_warning, delete_warning, delete_warnings_by_types, delete_non_r06_warnings
 from fetchers.xml_utils import find_text
 from scheduler.area_master import get_pref_code_from_area_code
 
@@ -36,6 +36,27 @@ _R06_SUFFIX_MAP: dict[str, str] = {
     "VPWW55": "（浸水害）",
     "VPWW56": "（土砂災害）",
 }
+
+# R06（VPWW55〜61）でDBに保存される警報種別名（サフィックス付き含む）
+_R06_DB_WARNING_TYPES: list[str] = [
+    "大雨特別警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）",
+    "大雨特別警報（土砂災害）", "大雨警報（土砂災害）", "大雨注意報（土砂災害）",
+    "高潮特別警報", "高潮警報", "高潮注意報",
+    "洪水警報", "洪水注意報",
+    "暴風特別警報", "暴風警報", "強風注意報",
+    "大雪特別警報", "大雪警報", "大雪注意報",
+    "暴風雪特別警報", "暴風雪警報", "風雪注意報",
+]
+
+# R06で管理される電文上の元の警報種別名（VPWW53との重複チェック用）
+_R06_WARNING_TYPES: frozenset[str] = frozenset({
+    "大雨特別警報", "大雨警報", "大雨注意報",
+    "高潮特別警報", "高潮警報", "高潮注意報",
+    "洪水警報", "洪水注意報",
+    "暴風特別警報", "暴風警報", "強風注意報",
+    "大雪特別警報", "大雪警報", "大雪注意報",
+    "暴風雪特別警報", "暴風雪警報", "風雪注意報",
+})
 
 
 def _level(warning_type: str) -> str:
@@ -108,8 +129,8 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 
         kinds = item.findall("Kind")
         if not kinds:
-            # Kind 要素なし = 警報発令なし → エリアの全警報を削除
-            delete_warnings_by_area(area_code, db_path=db_path)
+            # Kind 要素なし = 警報発令なし → エリアの全警報を削除（R06管理分は除く）
+            delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
             continue
 
         for kind in kinds:
@@ -118,7 +139,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 
             # "発表警報・注意報はなし" パターン: Name に "なし" を含む
             if "なし" in kind_name:
-                delete_warnings_by_area(area_code, db_path=db_path)
+                delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
                 break
 
             # VPWW53 の Kind/Name にはレベルプレフィックスが付く場合がある
@@ -150,19 +171,7 @@ def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
 def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_path=None) -> int:
     """VPWW55〜61 R06 形式 XMLを解析して警報・注意報をDBに保存する。
 
-    R06 形式は警報種別ごとに分割されており、Kind/Name にレベルプレフィックスが付く。
-    - Kind/Status == "解除" → (area_code, warning_type) を DELETE
-    - Kind/Status == "発表" or "継続" → upsert（alert_level を格納）
-    - Kind/Name に "なし" を含む → area_code の対象種別を DELETE
-
-    Args:
-        root: lxml Element（XML ルート）。
-        reported_at: 電文の発表日時文字列。
-        doc_type: 電文種別コード（"VPWW55" 等）。警報種別の解決に使用。
-        db_path: DB パス。None の場合は Config.DB_PATH を使用。
-
-    Returns:
-        upsert した件数。
+    電文種別（doc_type）に対応する警報種別をエリア単位で全削除してから再挿入する（冪等・自己修復設計）。
     """
     warning_block = _find_warning_block(root)
     if warning_block is None:
@@ -180,44 +189,31 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
         if not area_code:
             continue
 
-        kinds = item.findall("Kind")
-        if not kinds:
-            # Kind なし = 発令なし → 電文種別に対応する全警報種別を削除
-            cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
-            if cleanup_types:
-                for wt in cleanup_types:
-                    delete_warning(area_code, wt, db_path=db_path)
-            else:
-                logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s)", doc_type, area_code)
+        cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
+        if not cleanup_types:
+            logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s)", doc_type, area_code)
             continue
 
+        # この電文種別が管理する警報種別をエリア単位で一括削除（ゴースト警報の防止）
+        delete_warnings_by_types(area_code, cleanup_types, db_path=db_path)
+
+        kinds = item.findall("Kind")
         for kind in kinds:
             kind_name = (kind.findtext("Name") or "").strip()
             status = (kind.findtext("Status") or "").strip()
 
-            # "なし" パターン → 電文種別に対応する全警報種別を削除
             if "なし" in kind_name:
-                cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
-                if cleanup_types:
-                    for wt in cleanup_types:
-                        delete_warning(area_code, wt, db_path=db_path)
-                else:
-                    logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s, kind_name=%s)", doc_type, area_code, kind_name)
                 break
 
-            # R06 では Kind/Name にレベルプレフィックスが必ず付く
             alert_level, warning_type = _extract_alert_level(kind_name)
             if not warning_type:
                 warning_type = kind_name
 
-            # VPWW55/56 の衝突防止: warning_type にサフィックスを付与
             suffix = _R06_SUFFIX_MAP.get(doc_type, "")
             if suffix and not warning_type.endswith(suffix):
                 warning_type += suffix
 
-            if status == "解除":
-                delete_warning(area_code, warning_type, db_path=db_path)
-            elif status in ("発表", "継続"):
+            if status in ("発表", "継続"):
                 level = _level(warning_type)
                 upsert_warning(
                     area_code=area_code,
@@ -230,7 +226,7 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
                 )
                 saved += 1
             else:
-                logger.debug("[%s] 未知の Status '%s' (area=%s, type=%s)", doc_type, status, area_code, warning_type)
+                logger.debug("[%s] スキップ Status='%s' (area=%s, type=%s)", doc_type, status, area_code, warning_type)
 
     logger.info("[%s] 警報保存: %d件", doc_type, saved)
     return saved
