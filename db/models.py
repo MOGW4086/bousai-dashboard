@@ -149,6 +149,9 @@ def upsert_warning(
             DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
                           alert_level=COALESCE(excluded.alert_level, warnings.alert_level),
                           reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
+            WHERE excluded.reported_at IS NULL
+               OR warnings.reported_at IS NULL
+               OR excluded.reported_at >= warnings.reported_at
             """,
             (area_code, area_name, warning_type, level, alert_level, reported_at),
         )
@@ -191,7 +194,7 @@ def delete_non_r06_warnings(area_code: str, r06_types: list[str], db_path: str |
     with get_conn(db_path) as conn:
         placeholders = ",".join("?" * len(r06_types))
         conn.execute(
-            f"DELETE FROM warnings WHERE area_code = ? AND warning_type NOT IN ({placeholders})",
+            f"DELETE FROM warnings WHERE area_code = ? AND warning_type != '土砂災害警戒情報' AND warning_type NOT IN ({placeholders})",
             (area_code, *r06_types),
         )
 

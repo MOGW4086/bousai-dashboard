@@ -42,7 +42,7 @@ HANDLERS = {
 # VTSE41 はエリアコード 010000 が全エリア共通のため重複排除対象外とする
 # VXWW50 は一県全域を網羅するため、古い電文で最新状態が上書きされないよう最新1件のみ処理する
 # VPWW55〜61 も警報種別ごとに地域単位で配信されるため重複排除対象に追加する
-_AREA_DEDUP_TYPES = {"VTWW53", "VXWW50"} | {f"VPWW{i}" for i in range(55, 62)}
+_AREA_DEDUP_TYPES = {"VPWW53", "VTWW53", "VXWW50"} | {f"VPWW{i}" for i in range(55, 62)}
 
 
 def _area_code_from_url(url: str) -> str:
