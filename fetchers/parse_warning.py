@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import upsert_warning, delete_warning, delete_warnings_by_types, delete_non_r06_warnings
+from db.models import upsert_warning, delete_warning, delete_non_r06_warnings, get_conn
 from fetchers.xml_utils import find_text
 from scheduler.area_master import get_pref_code_from_area_code
 
@@ -177,6 +177,7 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
     """VPWW55〜61 R06 形式 XMLを解析して警報・注意報をDBに保存する。
 
     電文種別（doc_type）に対応する警報種別をエリア単位で全削除してから再挿入する（冪等・自己修復設計）。
+    全 Item を単一トランザクションで処理し、コミット回数を最小化する。
     """
     warning_block = _find_warning_block(root)
     if warning_block is None:
@@ -185,53 +186,59 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
 
     saved = 0
 
-    for item in warning_block.findall("Item"):
-        area_el = item.find("Area")
-        if area_el is None:
-            continue
-        area_name = (area_el.findtext("Name") or "").strip()
-        area_code = (area_el.findtext("Code") or "").strip()
-        if not area_code:
-            continue
+    with get_conn(db_path) as conn:
+        for item in warning_block.findall("Item"):
+            area_el = item.find("Area")
+            if area_el is None:
+                continue
+            area_name = (area_el.findtext("Name") or "").strip()
+            area_code = (area_el.findtext("Code") or "").strip()
+            if not area_code:
+                continue
 
-        cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
-        if not cleanup_types:
-            logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s)", doc_type, area_code)
-            continue
-
-        # この電文種別が管理する警報種別をエリア単位で一括削除（ゴースト警報の防止）
-        delete_warnings_by_types(area_code, cleanup_types, db_path=db_path)
-
-        kinds = item.findall("Kind")
-        for kind in kinds:
-            kind_name = (kind.findtext("Name") or "").strip()
-            status = (kind.findtext("Status") or "").strip()
-
-            if "なし" in kind_name:
-                break
-
-            alert_level, warning_type = _extract_alert_level(kind_name)
-            if not warning_type:
-                warning_type = kind_name
-
-            suffix = _R06_SUFFIX_MAP.get(doc_type, "")
-            if suffix and not warning_type.endswith(suffix):
-                warning_type += suffix
-
-            if status in ("発表", "継続"):
-                level = _level(warning_type)
-                upsert_warning(
-                    area_code=area_code,
-                    area_name=area_name,
-                    warning_type=warning_type,
-                    level=level,
-                    reported_at=reported_at,
-                    alert_level=alert_level,
-                    db_path=db_path,
-                )
-                saved += 1
+            cleanup_types = _R06_CLEANUP_TYPES.get(doc_type, [])
+            if not cleanup_types:
+                logger.warning("[%s] _R06_CLEANUP_TYPES に未登録の doc_type (area=%s)", doc_type, area_code)
             else:
-                logger.debug("[%s] スキップ Status='%s' (area=%s, type=%s)", doc_type, status, area_code, warning_type)
+                # この電文種別が管理する警報種別をエリア単位で一括削除（ゴースト警報の防止）
+                placeholders = ",".join("?" * len(cleanup_types))
+                conn.execute(
+                    f"DELETE FROM warnings WHERE area_code=? AND warning_type IN ({placeholders})",
+                    (area_code, *cleanup_types),
+                )
+
+            kinds = item.findall("Kind")
+            for kind in kinds:
+                kind_name = (kind.findtext("Name") or "").strip()
+                status = (kind.findtext("Status") or "").strip()
+
+                if "なし" in kind_name:
+                    break
+
+                alert_level, warning_type = _extract_alert_level(kind_name)
+                if not warning_type:
+                    warning_type = kind_name
+
+                suffix = _R06_SUFFIX_MAP.get(doc_type, "")
+                if suffix and not warning_type.endswith(suffix):
+                    warning_type += suffix
+
+                if status in ("発表", "継続"):
+                    level = _level(warning_type)
+                    conn.execute(
+                        """
+                        INSERT INTO warnings (area_code, area_name, warning_type, level, alert_level, reported_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(area_code, warning_type)
+                        DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
+                                      alert_level=COALESCE(excluded.alert_level, warnings.alert_level),
+                                      reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
+                        """,
+                        (area_code, area_name, warning_type, level, alert_level, reported_at),
+                    )
+                    saved += 1
+                else:
+                    logger.debug("[%s] スキップ Status='%s' (area=%s, type=%s)", doc_type, status, area_code, warning_type)
 
     logger.info("[%s] 警報保存: %d件", doc_type, saved)
     return saved
