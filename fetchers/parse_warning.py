@@ -11,9 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import etree
-from db.models import upsert_warning, delete_warning, delete_non_r06_warnings, get_conn
-from fetchers.xml_utils import find_text
-from scheduler.area_master import get_pref_code_from_area_code
+from db.models import get_conn
 
 logger = logging.getLogger(__name__)
 
@@ -35,18 +33,6 @@ _R06_CLEANUP_TYPES: dict[str, list[str]] = {
 _R06_SUFFIX_MAP: dict[str, str] = {
     "VPWW55": "（浸水害）",
 }
-
-# R06（VPWW55〜61）でDBに保存される警報種別名（サフィックス付き含む）
-_R06_DB_WARNING_TYPES: list[str] = [
-    "大雨特別警報（浸水害）", "大雨危険警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）",
-    "土砂災害特別警報", "土砂災害危険警報", "土砂災害警報", "土砂災害注意報",
-    "高潮特別警報", "高潮危険警報", "高潮警報", "高潮注意報",
-    "暴風特別警報", "暴風警報", "強風注意報",
-    "暴風雪特別警報", "暴風雪警報", "風雪注意報",
-    "波浪特別警報", "波浪警報", "波浪注意報",
-    "大雪特別警報", "大雪警報", "大雪注意報",
-    "雷注意報", "融雪注意報", "濃霧注意報", "乾燥注意報", "なだれ注意報", "低温注意報", "霜注意報", "着氷注意報", "着雪注意報",
-]
 
 
 def _level(warning_type: str) -> str:
@@ -87,89 +73,6 @@ def _find_warning_block(root: etree._Element) -> "etree._Element | None":
     # フォールバック: 最初の Warning ブロック
     return root.find(".//Warning")
 
-
-def handle(root: etree._Element, reported_at: str, db_path=None) -> int:
-    """VPWW53 XMLを解析して警報・注意報をDBに保存する。
-
-    従来の「都道府県単位で全削除してから再挿入」方式を廃止し、
-    Kind/Status ごとに個別 DELETE / upsert を行う（冪等設計）。
-
-    - Kind/Status == "解除" → (area_code, warning_type) を DELETE
-    - Kind/Status == "発表" or "継続" → upsert（alert_level も更新）
-    - Kind/Name に "なし" が含まれる場合 → area_code の全警報を DELETE
-
-    Returns:
-        upsert した件数。
-    """
-    warning_block = _find_warning_block(root)
-    if warning_block is None:
-        logger.debug("Warning ブロックが見つかりませんでした")
-        return 0
-
-    saved = 0
-
-    for item in warning_block.findall("Item"):
-        area_el = item.find("Area")
-        if area_el is None:
-            continue
-        area_name = (area_el.findtext("Name") or "").strip()
-        area_code = (area_el.findtext("Code") or "").strip()
-        if not area_code:
-            continue
-
-        kinds = item.findall("Kind")
-        if not kinds:
-            # Kind 要素なし = 警報発令なし → エリアの全警報を削除（R06管理分は除く）
-            delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
-            continue
-
-        # "発表警報・注意報はなし" パターン: Name に "なし" を含む
-        has_none = any("なし" in (kind.findtext("Name") or "") for kind in kinds)
-        if has_none:
-            delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES, db_path=db_path)
-            continue
-
-        # 今回の電文でアクティブ（発表・継続）な警報種別を収集
-        active_types: list[str] = []
-        for kind in kinds:
-            kind_name = (kind.findtext("Name") or "").strip()
-            status = (kind.findtext("Status") or "").strip()
-            if status in ("発表", "継続"):
-                _, warning_type = _extract_alert_level(kind_name)
-                if not warning_type:
-                    warning_type = kind_name
-                active_types.append(warning_type)
-
-        # 今回アクティブでない、かつR06対象外の警報をDBから一括削除（ゴースト警報の防止）
-        delete_non_r06_warnings(area_code, _R06_DB_WARNING_TYPES + active_types, db_path=db_path)
-
-        for kind in kinds:
-            kind_name = (kind.findtext("Name") or "").strip()
-            status = (kind.findtext("Status") or "").strip()
-
-            alert_level, warning_type = _extract_alert_level(kind_name)
-            if not warning_type:
-                warning_type = kind_name
-
-            if status in ("発表", "継続"):
-                level = _level(warning_type)
-                upsert_warning(
-                    area_code=area_code,
-                    area_name=area_name,
-                    warning_type=warning_type,
-                    level=level,
-                    reported_at=reported_at,
-                    alert_level=alert_level,
-                    db_path=db_path,
-                )
-                saved += 1
-            elif status == "解除":
-                delete_warning(area_code, warning_type, db_path=db_path)
-            else:
-                logger.debug("未知の Status '%s' (area=%s, type=%s)", status, area_code, warning_type)
-
-    logger.info("警報保存: %d件", saved)
-    return saved
 
 
 def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_path=None) -> int:
