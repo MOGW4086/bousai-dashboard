@@ -26,7 +26,7 @@ _R06_CLEANUP_TYPES: dict[str, list[str]] = {
     "VPWW58": ["暴風特別警報", "暴風警報", "強風注意報", "暴風雪特別警報", "暴風雪警報", "風雪注意報"],
     "VPWW59": ["波浪特別警報", "波浪警報", "波浪注意報"],
     "VPWW60": ["大雪特別警報", "大雪警報", "大雪注意報"],
-    "VPWW61": ["雷注意報", "融雪注意報", "濃霧注意報", "乾燥注意報", "なだれ注意報", "低温注意報", "霜注意報", "着氷注意報", "着雪注意報"],
+    "VPWW61": ["雷注意報", "融雪注意報", "濃霧注意報", "乾燥注意報", "なだれ注意報", "低温注意報", "霜注意報", "着氷注意報", "着雪注意報", "その他の注意報"],
 }
 
 # VPWW55/56 の衝突防止のために warning_type に付与するサフィックス
@@ -114,7 +114,7 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
                 kind_name = (kind.findtext("Name") or "").strip()
                 status = (kind.findtext("Status") or "").strip()
 
-                if "なし" in kind_name:
+                if "なし" in status:
                     break
 
                 alert_level, warning_type = _extract_alert_level(kind_name)
