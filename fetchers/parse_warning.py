@@ -20,7 +20,7 @@ _LEVEL_RE = re.compile(r"^レベル(\d+)\s*")
 
 # 各 R06 電文種別に対応する、解除・クリア時に削除対象とする警報種別リスト
 _R06_CLEANUP_TYPES: dict[str, list[str]] = {
-    "VPWW55": ["大雨特別警報（浸水害）", "大雨危険警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）"],
+    "VPWW55": ["大雨特別警報（浸水害）", "大雨危険警報（浸水害）", "大雨警報（浸水害）", "大雨注意報（浸水害）", "洪水警報", "洪水注意報"],
     "VPWW56": ["土砂災害特別警報", "土砂災害危険警報", "土砂災害警報", "土砂災害注意報"],
     "VPWW57": ["高潮特別警報", "高潮危険警報", "高潮警報", "高潮注意報"],
     "VPWW58": ["暴風特別警報", "暴風警報", "強風注意報", "暴風雪特別警報", "暴風雪警報", "風雪注意報"],
@@ -122,7 +122,7 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
                     warning_type = kind_name
 
                 suffix = _R06_SUFFIX_MAP.get(doc_type, "")
-                if suffix and not warning_type.endswith(suffix):
+                if suffix and warning_type.startswith("大雨") and not warning_type.endswith(suffix):
                     warning_type += suffix
 
                 if status in ("発表", "継続"):

@@ -157,48 +157,6 @@ def upsert_warning(
         )
 
 
-def delete_warning(area_code: str, warning_type: str, db_path: str | None = None) -> None:
-    """指定エリアコード・警報種別の警報を削除する（解除電文用）。"""
-    with get_conn(db_path) as conn:
-        conn.execute(
-            "DELETE FROM warnings WHERE area_code = ? AND warning_type = ?",
-            (area_code, warning_type),
-        )
-
-
-def delete_warnings_by_area(area_code: str, db_path: str | None = None) -> None:
-    """指定エリアコードの全警報を削除する（「発表警報・注意報はなし」時）。"""
-    with get_conn(db_path) as conn:
-        conn.execute(
-            "DELETE FROM warnings WHERE area_code = ?",
-            (area_code,),
-        )
-
-
-def delete_warnings_by_types(area_code: str, warning_types: list[str], db_path: str | None = None) -> None:
-    """指定エリアコードの、指定された警報種別の警報をすべて削除する。"""
-    if not warning_types:
-        return
-    with get_conn(db_path) as conn:
-        placeholders = ",".join("?" * len(warning_types))
-        conn.execute(
-            f"DELETE FROM warnings WHERE area_code = ? AND warning_type IN ({placeholders})",
-            (area_code, *warning_types),
-        )
-
-
-def delete_non_r06_warnings(area_code: str, r06_types: list[str], db_path: str | None = None) -> None:
-    """指定エリアコードの、R06対象外の警報をすべて削除する。"""
-    if not r06_types:
-        return
-    with get_conn(db_path) as conn:
-        placeholders = ",".join("?" * len(r06_types))
-        conn.execute(
-            f"DELETE FROM warnings WHERE area_code = ? AND warning_type != '土砂災害警戒情報' AND warning_type NOT IN ({placeholders})",
-            (area_code, *r06_types),
-        )
-
-
 def delete_warnings_by_pref(pref_code: str, db_path: str | None = None) -> None:
     """指定都道府県コードに紐づく警報を全削除する（最新化前の掃除用）。
     get_pref_code_from_area_code で正確に pref_code を特定してから削除する。
