@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS warnings (
     area_name    TEXT,
     warning_type TEXT NOT NULL,
     level        TEXT NOT NULL DEFAULT 'warning',
+    alert_level  INTEGER,
     reported_at  TEXT,
     fetched_at   TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     UNIQUE(area_code, warning_type)
@@ -175,6 +176,14 @@ def init_db(db_path: str | None = None) -> None:
         if "track_json" not in ty_cols:
             conn.execute("ALTER TABLE typhoons ADD COLUMN track_json TEXT")
         conn.commit()
+        # warnings に alert_level カラムを追加（既存DBのマイグレーション）
+        # 新規DBはDDL（上記 CREATE TABLE warnings）に直接 alert_level が含まれる。
+        # 既存DBはここで ALTER TABLE により追加する（migration_003 相当）。
+        # この処理は applied_migrations テーブルには記録しない設計（init_db はべき等で軽量に保つ）。
+        w_cols = [row[1] for row in conn.execute("PRAGMA table_info(warnings)").fetchall()]
+        if "alert_level" not in w_cols:
+            conn.execute("ALTER TABLE warnings ADD COLUMN alert_level INTEGER")
+            conn.commit()
         print(f"[init_db] DB初期化完了: {path}")
     finally:
         conn.close()

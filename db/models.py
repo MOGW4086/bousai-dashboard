@@ -136,19 +136,24 @@ def upsert_warning(
     warning_type: str,
     level: str,
     reported_at: str | None,
+    alert_level: int | None = None,
     db_path: str | None = None,
 ) -> None:
-    """警報・注意報をupsertする。"""
+    """警報・注意報をupsertする。alert_level は R06 形式電文のレベル値（None = 旧形式）。"""
     with get_conn(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO warnings (area_code, area_name, warning_type, level, reported_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO warnings (area_code, area_name, warning_type, level, alert_level, reported_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(area_code, warning_type)
             DO UPDATE SET area_name=excluded.area_name, level=excluded.level,
+                          alert_level=COALESCE(excluded.alert_level, warnings.alert_level),
                           reported_at=excluded.reported_at, fetched_at=datetime('now','localtime')
+            WHERE excluded.reported_at IS NULL
+               OR warnings.reported_at IS NULL
+               OR excluded.reported_at >= warnings.reported_at
             """,
-            (area_code, area_name, warning_type, level, reported_at),
+            (area_code, area_name, warning_type, level, alert_level, reported_at),
         )
 
 
