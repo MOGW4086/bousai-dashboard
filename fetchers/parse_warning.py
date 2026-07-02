@@ -115,7 +115,7 @@ def handle_r06(root: etree._Element, reported_at: str, doc_type: str = "", db_pa
                 status = (kind.findtext("Status") or "").strip()
 
                 if "なし" in status:
-                    break
+                    continue
 
                 alert_level, warning_type = _extract_alert_level(kind_name)
                 if not warning_type:
